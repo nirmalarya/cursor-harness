@@ -126,7 +126,7 @@ async def run_fetcher_session(
     Returns:
         Dict with pbi_id and spec_file path, or None if no PBIs
     """
-    from anthropic_client import AgentClient
+    from .cursor_cli_client import CursorCLIClient
     from security import SecurityValidator
     
     print("  Running Azure DevOps Fetcher Session...")
