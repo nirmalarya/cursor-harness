@@ -49,16 +49,21 @@ async def run_autonomous_backlog(
     pbis_completed = 0
     
     while True:
-        # 1. Query Azure DevOps for next PBI
-        print("\n🔍 Querying Azure DevOps for next work item...")
+        # 1. FETCH SESSION: Query Azure DevOps and create spec
+        print("\n🔍 Running Azure DevOps Fetcher Session...")
+        print("   (This uses MCP tools to fetch next PBI)\n")
         
-        work_items = ado.query_work_items(
+        # Run a special fetcher session that uses Azure DevOps MCP
+        # The agent will use mcp_azure-devops tools to query and fetch
+        fetcher_result = await run_fetcher_session(
+            project_dir=project_dir,
+            model=model,
             epic=epic,
-            state="New",
-            top=1
+            ado_project=azure_devops_project,
+            ado_org=azure_devops_org
         )
         
-        if not work_items:
+        if not fetcher_result or not fetcher_result.get('pbi_id'):
             print("\n✅ No more PBIs in backlog!")
             
             if max_pbis is None:
@@ -69,25 +74,11 @@ async def run_autonomous_backlog(
                 print(f"✅ Completed {pbis_completed} PBIs")
                 return
         
-        # Get first PBI
-        pbi_summary = work_items[0]
-        pbi = ado.get_work_item(pbi_summary['id'])
+        pbi_id = fetcher_result['pbi_id']
+        spec_file = project_dir / "spec" / f"{pbi_id}_spec.txt"
         
-        # 2. Display PBI
-        print(f"\n{'='*70}")
-        print(f"  📋 {pbi['id']}: {pbi['fields']['System.Title']}")
-        print(f"{'='*70}")
-        print(f"\nType: {pbi['fields']['System.WorkItemType']}")
-        print(f"Description: {pbi['fields'].get('System.Description', 'N/A')[:200]}...")
-        print(f"\n{'='*70}\n")
-        
-        # 3. Convert to spec
-        spec_content = ado.convert_to_spec(pbi)
-        spec_file = project_dir / "spec" / f"pbi_{pbi['id']}_spec.txt"
-        spec_file.parent.mkdir(parents=True, exist_ok=True)
-        spec_file.write_text(spec_content)
-        
-        print(f"✅ Created spec: {spec_file}\n")
+        print(f"\n✅ PBI fetched: {pbi_id}")
+        print(f"✅ Spec created: {spec_file}\n")
         
         # 4. Run multi-agent workflow
         print("🚀 Starting multi-agent workflow...\n")
@@ -122,19 +113,38 @@ async def run_autonomous_backlog(
             return
 
 
+async def run_fetcher_session(
+    project_dir: Path,
+    model: str,
+    epic: Optional[str],
+    ado_project: str,
+    ado_org: str
+) -> Optional[Dict]:
+    """
+    Run special fetcher session to get next PBI via Azure DevOps MCP.
+    
+    Returns:
+        Dict with pbi_id and spec_file path, or None if no PBIs
+    """
+    # TODO: Run actual Cursor session with azure_devops_fetcher_prompt.md
+    # The agent will use MCP tools to query and fetch PBI
+    # For now, return None (placeholder)
+    return None
+
+
 async def run_multi_agent_workflow_for_pbi(
     project_dir: Path,
     model: str,
-    pbi: Dict,
+    pbi_id: str,
     spec_file: Path,
-    ado: AzureDevOpsIntegration
 ) -> bool:
-    """Run complete multi-agent workflow for one PBI."""
+    """
+    Run complete multi-agent workflow for one PBI.
     
-    workflow = MultiAgentWorkflow(
-        project_dir=project_dir,
-        project_name=ado.project
-    )
+    RESPECTS ANTHROPIC HARNESS PATTERN:
+    - Each agent runs FULL harness (initializer + coders)
+    - NOT just one session per agent!
+    """
     
     agents = ["architect", "engineer", "tester", "code_review", "security", "devops"]
     
@@ -158,41 +168,48 @@ async def run_multi_agent_workflow_for_pbi(
             print(f"⏩ {agent.title()} already complete, skipping...\n")
             continue
         
-        print(f"\n{'─'*70}")
-        print(f"  🤖 {agent.title()} Agent")
-        print(f"{'─'*70}\n")
+        print(f"\n{'═'*70}")
+        print(f"  🤖 {agent.upper()} AGENT - STARTING FULL HARNESS")
+        print(f"{'═'*70}\n")
         
-        # Load agent-specific prompt
-        agent_prompt = workflow.load_agent_prompt(agent, pbi_context)
-        
-        # Run agent session with Cursor
-        # (This will use cursor_agent_runner.py to execute)
-        
-        # For now, placeholder
-        print(f"Running {agent} agent with Cursor CLI...")
-        print(f"Prompt loaded: {len(agent_prompt)} characters")
-        
-        # TODO: Actually run the agent with Cursor
-        # result = await run_cursor_agent_session(agent_prompt, project_dir, model)
-        
-        # Placeholder - assume success
-        # In real implementation, would check result.success
-        
-        # Update Azure DevOps
-        ado.add_comment(
-            pbi['id'],
-            f"[{agent.title()}] Agent completed"
+        # Create agent-specific spec (combines PBI + agent rules)
+        agent_spec_file = await create_agent_spec(
+            project_dir=project_dir,
+            pbi_spec_file=spec_file,
+            agent=agent,
+            model=model
         )
+        
+        print(f"Running {agent} through FULL harness pattern:")
+        print(f"  Session 1: Initializer (plan {agent} tasks)")
+        print(f"  Session 2+: Coder (implement tasks)")
+        print(f"  Stops automatically when agent tasks complete\n")
+        
+        # Run FULL autonomous harness for this agent!
+        # This respects the Anthropic pattern (initializer + coders)
+        from cursor_agent_runner import run_autonomous_agent
+        
+        await run_autonomous_agent(
+            project_dir=project_dir,
+            model=model,
+            max_iterations=50,  # Allow multiple sessions per agent
+            mode="enhancement",  # Agent enhances existing project
+            spec_file=str(agent_spec_file),
+        )
+        
+        # Agent completed (stopped at 100% automatically)
+        print(f"\n✅ {agent.upper()} agent complete!\n")
+        
+        # TODO: Update Azure DevOps via MCP
+        # Would use mcp_azure-devops_wit_add_work_item_comment
         
         # Save checkpoint
         workflow.mark_agent_complete(
             agent=agent,
-            artifacts=[],  # Would list actual files created
-            commit_sha="placeholder",
-            summary=f"{agent.title()} agent completed"
+            artifacts=[],  # Would get from agent output
+            commit_sha=get_latest_commit(),
+            summary=f"{agent.title()} completed via autonomous harness"
         )
-        
-        print(f"✅ {agent.title()} complete!\n")
     
     # All agents complete
     return True
