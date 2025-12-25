@@ -92,6 +92,21 @@ Authentication:
         help=f"Cursor model to use (default: {DEFAULT_MODEL})",
     )
 
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["greenfield", "enhancement", "bugfix"],
+        default="greenfield",
+        help="Development mode: greenfield (new project), enhancement (add features), bugfix (fix issues)",
+    )
+
+    parser.add_argument(
+        "--spec",
+        type=str,
+        default=None,
+        help="Path to specification file (e.g., specs/autograph_puppeteer_migration.txt)",
+    )
+
     return parser.parse_args()
 
 
