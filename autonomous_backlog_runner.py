@@ -13,6 +13,7 @@ from typing import Optional
 from azure_devops_integration import AzureDevOpsIntegration
 from multi_agent_mode import MultiAgentWorkflow
 from cursor_agent_runner import run_autonomous_agent
+import subprocess
 
 
 async def run_autonomous_backlog(
@@ -126,10 +127,156 @@ async def run_fetcher_session(
     Returns:
         Dict with pbi_id and spec_file path, or None if no PBIs
     """
-    # TODO: Run actual Cursor session with azure_devops_fetcher_prompt.md
-    # The agent will use MCP tools to query and fetch PBI
-    # For now, return None (placeholder)
+    from cursor_client_streaming import CursorAgentClient
+    from security import SecurityValidator
+    
+    print("  Running Azure DevOps Fetcher Session...")
+    print("  (Agent will use MCP tools to fetch next PBI)\n")
+    
+    # Load fetcher prompt
+    prompt_file = Path(__file__).parent / "prompts" / "azure_devops_fetcher_prompt.md"
+    fetcher_prompt = prompt_file.read_text()
+    
+    # Replace placeholders
+    fetcher_prompt = fetcher_prompt.replace("{{PROJECT_NAME}}", ado_project)
+    fetcher_prompt = fetcher_prompt.replace("{{ORGANIZATION}}", ado_org)
+    fetcher_prompt = fetcher_prompt.replace("{{EPIC}}", epic or "Any")
+    
+    # Add query instructions
+    if epic:
+        query_instruction = f"""
+## Query to Run
+
+Use Azure DevOps MCP to query for next work item:
+
+```
+Use mcp_azure-devops_search_workitem with:
+- searchText: "{epic}"
+- project: ["{ado_project}"]
+- state: ["New"]
+- top: 1
+
+This will return PBIs in Epic {epic} that are "New" (not started).
+Get the first one and fetch its details with mcp_azure-devops_wit_get_work_item.
+```
+"""
+        fetcher_prompt = fetcher_prompt.replace("{{WORK_ITEM_ID}}", "QUERY_RESULT")
+        fetcher_prompt = query_instruction + "\n" + fetcher_prompt
+    
+    # Create client
+    client = CursorAgentClient(
+        project_dir=project_dir,
+        model=model,
+        security_validator=SecurityValidator()
+    )
+    
+    # Run fetcher session
+    try:
+        await client.run_session(fetcher_prompt)
+    except Exception as e:
+        print(f"❌ Fetcher session failed: {e}")
+        return None
+    
+    # Check if spec file was created
+    spec_dir = project_dir / "spec"
+    if spec_dir.exists():
+        spec_files = list(spec_dir.glob("*_spec.txt"))
+        if spec_files:
+            # Get most recently created spec
+            latest_spec = max(spec_files, key=lambda p: p.stat().st_mtime)
+            pbi_id = latest_spec.stem.replace("_spec", "")
+            
+            print(f"✅ Fetcher session complete!")
+            print(f"   PBI ID: {pbi_id}")
+            print(f"   Spec: {latest_spec}\n")
+            
+            return {
+                "pbi_id": pbi_id,
+                "spec_file": latest_spec
+            }
+    
+    print("❌ No spec file created - no PBIs found or fetch failed\n")
     return None
+
+
+async def create_agent_spec(
+    project_dir: Path,
+    pbi_spec_file: Path,
+    agent: str,
+    model: str
+) -> Path:
+    """
+    Create agent-specific spec combining PBI requirements + agent rules.
+    
+    Returns:
+        Path to agent-specific spec file
+    """
+    # Read PBI spec
+    pbi_spec = pbi_spec_file.read_text()
+    
+    # Load agent rules
+    agent_rules_file = Path(__file__).parent / "prompts" / "multi-agent" / f"{agent}_agent.md"
+    
+    if not agent_rules_file.exists():
+        print(f"⚠️  Agent rules not found: {agent_rules_file}")
+        print(f"   Using PBI spec only\n")
+        return pbi_spec_file
+    
+    agent_rules = agent_rules_file.read_text()
+    
+    # Get workflow state (which agents completed)
+    workflow = MultiAgentWorkflow(project_dir, "{{PROJECT}}")
+    state = workflow.get_workflow_state()
+    completed_agents = state.get('completedAgents', [])
+    
+    # Combine into agent-specific spec
+    agent_spec = f"""{pbi_spec}
+
+---
+
+# {agent.upper()} AGENT - YOUR ROLE
+
+{agent_rules}
+
+---
+
+# Multi-Agent Workflow Context
+
+**Your agent:** {agent.upper()}
+**Completed agents:** {', '.join([a.title() for a in completed_agents]) if completed_agents else 'None (you are first)'}
+**Remaining agents:** {', '.join([a.title() for a in ['architect', 'engineer', 'tester', 'code_review', 'security', 'devops'] if a not in completed_agents and a != agent])}
+
+**Your task:** Generate feature_list.json for {agent.upper()} agent tasks ONLY!
+
+Do NOT implement other agents' work. Focus on YOUR agent responsibilities.
+
+When you complete all your tasks (100%), the workflow will move to the next agent.
+
+---
+
+# Task Breakdown Guidance for {agent.upper()}
+
+Based on the PBI requirements above and your agent role, break down YOUR work into features.
+
+Example feature_list.json for {agent.upper()}:
+- If Architect: Design tasks, research, API contracts, ADR creation
+- If Engineer: Test tasks (RED), implementation tasks (GREEN), refactoring (REFACTOR)
+- If Tester: Unit test verification, E2E test creation, coverage check, grading
+- If CodeReview: Linting, naming conventions, code quality checks
+- If Security: OWASP review, dependency scan, vulnerability check
+- If DevOps: Build verification, smoke testing, deployment readiness
+
+Generate appropriate features for YOUR agent!
+"""
+    
+    # Save agent-specific spec
+    agent_spec_file = project_dir / "spec" / f"{agent}_agent_spec.txt"
+    agent_spec_file.write_text(agent_spec)
+    
+    print(f"✅ Agent spec created: {agent_spec_file}")
+    print(f"   Combines: PBI requirements + {agent} agent rules\n")
+    
+    return agent_spec_file
 
 
 async def run_multi_agent_workflow_for_pbi(
