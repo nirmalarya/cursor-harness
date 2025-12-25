@@ -50,6 +50,15 @@ def print_session_header(session_num: int, is_initializer: bool) -> None:
     print()
 
 
+def count_features(project_dir: Path) -> tuple[int, int]:
+    """
+    Count features (alias for count_passing_tests).
+    
+    Returns: (passing, total)
+    """
+    return count_passing_tests(project_dir)
+
+
 def print_progress_summary(project_dir: Path) -> None:
     """Print a summary of current progress."""
     passing, total = count_passing_tests(project_dir)
