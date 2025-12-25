@@ -1,0 +1,223 @@
+<validation_spec>
+  <project_name>AutoGraph - Puppeteer Migration & Validation</project_name>
+  <mode>test-migration-and-validation</mode>
+  <base_version>v3.0 (658 features, 210 Playwright tests)</base_version>
+  <target_version>v3.2 (658 validated features, 210+ Puppeteer tests)</target_version>
+  
+  <critical_decision>
+    STANDARDIZE ON PUPPETEER MCP (Claude SDK native)
+    
+    Current: 210 Playwright tests (external dependency)
+    Target: 210+ Puppeteer MCP tests (SDK native)
+    
+    Why Puppeteer:
+    - Native to Claude SDK (via MCP)
+    - No external dependencies
+    - Consistent with harness
+    - Better integration
+    - Future-proof
+  </critical_decision>
+  
+  <strategy>
+    <phase name="playwright-analysis" sessions="1-5">
+      <objective>Analyze existing Playwright tests</objective>
+      
+      <process>
+        1. List all 210 Playwright tests in scripts/tests/
+        2. Read each test file
+        3. Extract test patterns:
+           - What pages are tested?
+           - What interactions (click, type, etc.)?
+           - What assertions?
+           - What data setup?
+        4. Create conversion plan:
+           - Playwright API → Puppeteer MCP mapping
+           - page.goto() → puppeteer_navigate()
+           - page.click() → puppeteer_click()
+           - page.fill() → puppeteer_type()
+           - etc.
+      </process>
+      
+      <deliverable>
+        - playwright_tests_inventory.json (all tests catalogued)
+        - conversion_mapping.md (Playwright → Puppeteer mapping)
+        - conversion_plan.md (order and approach)
+      </deliverable>
+    </phase>
+    
+    <phase name="convert-and-improve-tests" sessions="6-100">
+      <objective>Convert Playwright tests to Puppeteer MCP AND improve quality</objective>
+      
+      <critical>NOT just syntax conversion - QUALITY IMPROVEMENT!</critical>
+      
+      <process>
+        For each Playwright test:
+        
+        1. Read original test (e.g., test_auth_e2e.py)
+        
+        2. ASSESS QUALITY of original test:
+           - Does it test complete workflow? (not just one action)
+           - Does it verify results? (has assertions)
+           - Does it test persistence? (reload/revisit)
+           - Does it test error cases? (not just happy path)
+           - Does it use real data? (not mocked)
+           
+           Rate: HIGH / MEDIUM / LOW quality
+        
+        3. IMPROVE while converting:
+           ```python
+           # FROM (Playwright):
+           async with async_playwright() as p:
+               browser = await p.chromium.launch()
+               page = await browser.new_page()
+               await page.goto('http://localhost:3000')
+               await page.click('button#login')
+               await page.fill('#email', 'test@example.com')
+           
+           # TO (Puppeteer MCP - via harness tools):
+           # Note: No code! Just tool calls in instructions
+           Use puppeteer_navigate to http://localhost:3000
+           Use puppeteer_click on button#login
+           Use puppeteer_type in #email field with test@example.com
+           ```
+        
+        3. Write IMPROVED Puppeteer test:
+           
+           If original was HIGH quality:
+           - Convert syntax (Playwright → Puppeteer)
+           - Keep comprehensive logic
+           
+           If original was MEDIUM quality:
+           - Convert syntax
+           - ADD missing checks:
+             * Add persistence verification (reload page, verify data still there)
+             * Add error case testing (invalid input, etc.)
+             * Add complete workflow (not just one step)
+           
+           If original was LOW quality:
+           - REWRITE from scratch using Puppeteer
+           - Read feature description from feature_list.json
+           - Write comprehensive test:
+             * Complete user workflow (register→login→action→verify)
+             * Test persistence (reload page, data persists)
+             * Test error handling (invalid input)
+             * Use real browser (not mocked!)
+             * Multiple assertions
+        
+        4. RUN the new test (MANDATORY!)
+           - Execute with Puppeteer MCP
+           - Verify test passes
+           - If fails: Fix test OR fix code
+        
+        5. Verify test QUALITY before marking passing:
+           - Tests complete workflow ✅
+           - Tests persistence ✅
+           - Has clear assertions ✅
+           - Uses real browser ✅
+           - Would catch real bugs ✅
+        
+        6. Only then mark feature as passing
+        
+        7. Save improved test in tests/puppeteer/
+        
+        8. Delete old Playwright test
+      </process>
+      
+      <conversion_mapping>
+        Playwright → Puppeteer MCP:
+        
+        page.goto(url) → mcp__puppeteer__puppeteer_navigate(url)
+        page.click(selector) → mcp__puppeteer__puppeteer_click(selector)
+        page.fill(selector, text) → mcp__puppeteer__puppeteer_type(selector, text)
+        page.screenshot() → mcp__puppeteer__puppeteer_screenshot()
+        page.wait_for_selector() → mcp__puppeteer__puppeteer_wait_for()
+        page.evaluate(script) → mcp__puppeteer__puppeteer_evaluate(script)
+      </conversion_mapping>
+      
+      <expected>~2 tests converted per session = 100 sessions</expected>
+    </phase>
+    
+    <phase name="api-tests" sessions="101-130">
+      <objective>Validate features without UI (API/backend only)</objective>
+      
+      <process>
+        For features that don't need browser:
+        
+        1. Write API test using requests/curl
+        2. Test backend endpoints
+        3. Verify data persistence
+        4. Run test
+        5. Mark feature passing
+      </process>
+      
+      <expected>~150 API/backend features validated</expected>
+    </phase>
+    
+    <phase name="new-tests" sessions="131-160">
+      <objective>Create tests for features without any tests</objective>
+      
+      <process>
+        For features with no tests:
+        
+        1. Read feature description
+        2. Find implementing code
+        3. Write Puppeteer MCP test (if UI) or API test (if backend)
+        4. Run test
+        5. Mark feature passing
+      </process>
+      
+      <expected>~150 features with new tests</expected>
+    </phase>
+    
+    <phase name="final-validation" sessions="161-170">
+      <objective>Complete validation and cleanup</objective>
+      
+      <process>
+        1. Run ALL Puppeteer tests (210+)
+        2. Run ALL API tests (150+)
+        3. Verify 658/658 passing
+        4. Run regression suite
+        5. Run smoke test
+        6. Delete old Playwright tests (cleanup)
+        7. Update documentation
+      </process>
+      
+      <deliverable>
+        - 658/658 features validated ✅
+        - 210+ Puppeteer MCP tests ✅
+        - 150+ API tests ✅
+        - Zero Playwright dependencies ✅
+        - Production-ready test suite ✅
+      </deliverable>
+    </phase>
+  </strategy>
+  
+  <quality_gates>
+    All 12 v2.1 gates apply, PLUS:
+    
+    <gate>Puppeteer standardization: All browser tests use Puppeteer MCP</gate>
+    <gate>No Playwright: Remove all Playwright dependencies</gate>
+    <gate>Test execution: Every converted test must RUN and PASS</gate>
+    <gate>Browser verification: UI features tested in real browser</gate>
+  </quality_gates>
+  
+  <success_criteria>
+    <criterion>All 210 Playwright tests converted to Puppeteer MCP</criterion>
+    <criterion>All 658 features validated with appropriate tests</criterion>
+    <criterion>Zero Playwright dependencies remaining</criterion>
+    <criterion>All tests pass (Puppeteer + API)</criterion>
+    <criterion>Comprehensive test suite (658 tests total)</criterion>
+    <criterion>Production confidence: 100%</criterion>
+  </success_criteria>
+  
+  <estimated_timeline>
+    Phase 1 (Analysis): 5 sessions
+    Phase 2 (Convert tests): 100 sessions (~2 per session)
+    Phase 3 (API tests): 30 sessions
+    Phase 4 (New tests): 30 sessions
+    Phase 5 (Final): 10 sessions
+    
+    Total: ~170 sessions (~15-20 hours)
+  </estimated_timeline>
+</validation_spec>
+

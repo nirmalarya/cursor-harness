@@ -11,16 +11,21 @@ before proceeding.
 
 ### CRITICAL FIRST TASK: Create feature_list.json
 
-Based on `app_spec.txt`, create a file called `feature_list.json` with comprehensive
-detailed end-to-end test cases covering every feature area in the specification.
+**IMPORTANT: Use RELATIVE file paths!**
+- Your current working directory is the project directory
+- Write to `feature_list.json` (NOT `/Users/.../feature_list.json`)
+- Write to `init.sh` (NOT absolute paths)
+- All files should be relative paths from current directory
 
-**IMPORTANT:** 
-- Read the ENTIRE spec carefully to understand all feature areas
-- Generate detailed test cases for EVERY feature mentioned in each section
-- For a complex application like this (Eraser.io competitor with 10 microservices), generate 600-700 test cases
-- Each feature area in the spec should expand to multiple detailed test cases
-- Include both "functional" tests (features work) and "style" tests (UI/UX quality)
-- DO NOT skip or summarize - be exhaustively comprehensive
+Based on `app_spec.txt`, create a file called `feature_list.json` with ALL features
+detailed in the spec.
+
+**IMPORTANT:**
+- If spec lists numbered features (e.g., "Feature 1:", "Feature 2:", ... "Feature 665:"), create test case for EACH ONE
+- If spec says "665 features", you MUST generate all 665
+- Each feature in the spec should become ONE entry in feature_list.json
+- Copy the exact description, acceptance criteria, and test steps from the spec
+- DO NOT summarize or skip features
 
 **MANDATORY FORMAT (EXACTLY THIS):**
 ```json
@@ -44,15 +49,13 @@ detailed end-to-end test cases covering every feature area in the specification.
 ```json
 {
   "features": [...]  // WRONG - must be array at root
-  "total_features": 665,  // WRONG - no metadata wrapper
-  "categories": [...]  // WRONG - no grouping wrapper
 }
 ```
 
 ```json
 {
   "id": 1,  // WRONG - no id field
-  "status": "pending",  // WRONG - use "passes" not "status"  
+  "status": "pending",  // WRONG - use "passes" not "status"
   "title": "..."  // WRONG - use "description" not "title"
 }
 ```
@@ -64,61 +67,41 @@ detailed end-to-end test cases covering every feature area in the specification.
 - ✅ Each feature has "steps" (array of strings)
 - ✅ Each feature has "passes" (boolean, always false initially)
 - ❌ NO "id" field
-- ❌ NO "status" field
+- ❌ NO "status" field  
 - ❌ NO "title" field
-- ❌ NO wrapper object with "features" key
+- ❌ NO wrapper object
 
 **Requirements for feature_list.json:**
-- Generate 600-700 comprehensive test cases (appropriate for this application's scope)
-- Derive detailed test cases from ALL feature areas in spec
-- Example: Spec says "Canvas & Drawing with TLDraw, tools, figures" → Generate 80+ test cases covering every tool, interaction, styling option
-- Example: Spec says "AI Generation with MGA" → Generate 40+ test cases covering generation, providers, quality, refinement
+- Generate comprehensive test cases covering ALL feature areas in spec
+- Number of test cases should match project scope (200-250 for medium projects, 600-700 for large/complex projects)
+- Derive detailed test cases from each feature area in spec
 - Both "functional" and "style" categories
-- Mix of narrow tests (2-5 steps) and comprehensive tests (10+ steps)
-- At least 50 tests MUST have 10+ steps each (comprehensive user flows)
-- Order by priority: fundamental features first (infrastructure, auth, core functionality)
+- Keep order from spec (preserve priority)
 - ALL features start with "passes": false (boolean, not string)
-- Each test case specific and actionable (not generic)
-- DO NOT create placeholder descriptions
-- Cover every feature area exhaustively
+- DO NOT create placeholder features like "Feature X functionality"
+- DO NOT skip features because they're complex
 
 **VALIDATION BEFORE CONTINUING:**
 After creating feature_list.json, verify:
-1. Feature count is comprehensive (600-700 test cases for this scope)
-2. All feature areas from spec covered (infrastructure, canvas, AI, collaboration, etc.)
-3. No generic descriptions like "functionality X" or "feature Y"
+1. Feature count is comprehensive and appropriate for project scope
+2. All feature areas from spec covered exhaustively
+3. No generic descriptions like "functionality X"
 4. Format is Array at root: `[{...}, {...}]`
 5. Every entry has "passes": false (boolean)
 6. No "id", "status", or "title" fields
-7. File is valid JSON (run `python -m json.tool feature_list.json > /dev/null`)
-8. Test cases are specific and actionable
+7. File is valid JSON (test with `python -m json.tool feature_list.json > /dev/null`)
 
 If validation fails, FIX IT before proceeding!
 
-**ABSOLUTE REQUIREMENT - DO NOT PROCEED WITHOUT THIS:**
-
-Before moving to ANY other task, you MUST:
-1. Verify feature_list.json exists
-2. Verify it has comprehensive features (600-700 for this scope)
-3. Verify correct format (Array + "passes": false)
-4. Run: `python -m json.tool feature_list.json > /dev/null` - must succeed
-5. Run: `cat feature_list.json | grep -c "passes"` - must show 600+
-
-**IF FEATURE_LIST.JSON IS INCOMPLETE OR FAILED:**
-- DO NOT continue to other tasks
-- DO NOT create init.sh
-- DO NOT start coding
-- RETRY creating feature_list.json using a different approach:
-  * Try writing in chunks
-  * Try creating a Python script to generate it
-  * Try breaking into smaller files then merging
-  * Whatever it takes - feature_list.json MUST be complete!
-
-**YOU CANNOT PROCEED WITHOUT COMPLETE feature_list.json!**
-
-Only after feature_list.json is verified complete, continue to:
+**CRITICAL INSTRUCTION:**
+IT IS CATASTROPHIC TO REMOVE OR EDIT FEATURES IN FUTURE SESSIONS.
+Features can ONLY be marked as passing (change "passes": false to "passes": true).
+Never remove features, never edit descriptions, never modify testing steps.
+This ensures no functionality is missed.
 
 ### SECOND TASK: Create init.sh
+
+**Use relative path:** Write to `init.sh` (not `/Users/.../init.sh`)
 
 Create a script called `init.sh` that future agents can use to quickly
 set up and run the development environment. The script should:
@@ -132,7 +115,7 @@ Base the script on the technology stack specified in `app_spec.txt`.
 ### THIRD TASK: Initialize Git
 
 Create a git repository and make your first commit with:
-- feature_list.json (complete with 600-700 features)
+- feature_list.json (complete with all 200+ features)
 - init.sh (environment setup script)
 - README.md (project overview and setup instructions)
 
@@ -149,14 +132,14 @@ components mentioned in the spec.
 If you have time remaining in this session, you may begin implementing
 the highest-priority features from feature_list.json. Remember:
 - Work on ONE feature at a time
-- Test thoroughly before marking status as "passing"
+- Test thoroughly before marking "passes": true
 - Commit your progress before session ends
 
 ### ENDING THIS SESSION
 
 Before your context fills up:
 1. Commit all work with descriptive messages
-2. Create `cursor-progress.txt` with a summary of what you accomplished
+2. Create `claude-progress.txt` with a summary of what you accomplished
 3. Ensure feature_list.json is complete and saved
 4. Leave the environment in a clean, working state
 
@@ -166,6 +149,3 @@ The next agent will continue from here with a fresh context window.
 
 **Remember:** You have unlimited time across many sessions. Focus on
 quality over speed. Production-ready is the goal.
-
-
-

@@ -1,0 +1,66 @@
+<enhancement_spec>
+  <project_name>AutoGraph v3.1 - Foundation Fixes (v2.1 Test)</project_name>
+  <base_version>v3.0 (654 features)</base_version>
+  <target_version>v3.1 (Foundation working with v2.1 verification)</target_version>
+  <mode>bugfix</mode>
+  
+  <test_objective>
+    Test if autonomous-harness v2.1 catches issues that v2.0 missed!
+    
+    Specific tests:
+    - Will infrastructure validation catch missing MinIO buckets?
+    - Will test execution catch save failures?
+    - Will E2E testing catch browser issues?
+    - Will smoke test catch incomplete functionality?
+  </test_objective>
+  
+  <critical_fixes>
+    <fix priority="P0" test_case="infrastructure-validation">
+      <issue>MinIO buckets not initialized (diagrams, exports, uploads)</issue>
+      <solution>Create MinIO buckets before marking storage features passing</solution>
+      <expected_behavior>v2.1 infrastructure gate should detect missing buckets</expected_behavior>
+      <test>Storage accessible and buckets exist</test>
+    </fix>
+    
+    <fix priority="P0" test_case="test-execution">
+      <issue>Save diagram fails in browser (but test script passes)</issue>
+      <solution>Fix authorization and actually TEST in browser</solution>
+      <expected_behavior>v2.1 should run test AND verify in browser</expected_behavior>
+      <test>Browser save actually works, not just test script</test>
+    </fix>
+    
+    <fix priority="P0" test_case="e2e-verification">
+      <issue>Features work in isolation but not in complete user flow</issue>
+      <solution>Test complete workflows: register → login → create → save → verify</solution>
+      <expected_behavior>v2.1 E2E gate catches workflow failures</expected_behavior>
+      <test>Complete user journey works end-to-end</test>
+    </fix>
+    
+    <fix priority="P0" test_case="smoke-test">
+      <issue>100% claimed but critical flows broken</issue>
+      <solution>Run smoke test suite at 100% completion</solution>
+      <expected_behavior>v2.1 smoke test catches broken critical flows</expected_behavior>
+      <test>All critical flows work before claiming done</test>
+    </fix>
+  </critical_fixes>
+  
+  <quality_gates>
+    <!-- v2.1 has 12 gates - all should be tested! -->
+    <gate>Test execution: Actually runs tests (not just creates them)</gate>
+    <gate>Infrastructure validation: Checks MinIO/Postgres/Redis ready</gate>
+    <gate>E2E testing: Complete workflows in browser</gate>
+    <gate>Smoke test: Final verification at 100%</gate>
+    <gate>All other v2.1 gates</gate>
+  </quality_gates>
+  
+  <success_criteria>
+    <criterion>v2.1 harness CATCHES the MinIO bucket issue (doesn't assume it exists!)</criterion>
+    <criterion>v2.1 harness RUNS the tests (not just creates them!)</criterion>
+    <criterion>v2.1 harness TESTS in browser (not just curl!)</criterion>
+    <criterion>v2.1 harness RUNS smoke test at 100% (verifies everything works!)</criterion>
+    <criterion>AutoGraph actually works after v2.1 enhancement (validated!)</criterion>
+  </success_criteria>
+  
+  <expected_sessions>~5-8 sessions with real validation</expected_sessions>
+</enhancement_spec>
+

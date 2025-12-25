@@ -1,0 +1,224 @@
+<enhancement_spec>
+  <project_name>SHERPA v1.1 - Enhanced Edition</project_name>
+  <base_version>v1.0 (165 features complete, production-ready)</base_version>
+  <target_version>v1.1 (New integrations + local-first improvements)</target_version>
+  
+  <enhancement_description>
+    Enhance SHERPA v1.0 with new integrations (GitHub, Linear, AGENT.md) and
+    local-first improvements (vector DB, Kubernetes). Synchronize embedded
+    harness code with autonomous-harness v2.0 improvements.
+  </enhancement_description>
+  
+  <critical_enhancements priority="1">
+    <!-- Sync Harness Code to v2.0 -->
+    <feature category="harness-sync">
+      <title>Update Embedded Harness Code to v2.0</title>
+      <description>Sync sherpa/core/harness/ with autonomous-harness v2.0</description>
+      <files_to_update>
+        - sherpa/core/harness/agent_client.py
+        - sherpa/core/harness/autonomous_runner.py
+        - sherpa/core/harness/prompts.py
+      </files_to_update>
+      <improvements_to_add>
+        - Browser integration testing
+        - Security checklist
+        - Puppeteer E2E support
+        - Enhancement mode capability
+        - Agent Skills loading
+        - Stop condition
+        - Zero TODOs policy
+      </improvements_to_add>
+      <testing>Run SHERPA harness on test project, verify v2.0 features work</testing>
+    </feature>
+    
+    <!-- AGENT.md Generator (High Priority!) -->
+    <feature category="generator">
+      <title>AGENT.md Generator</title>
+      <description>Generate AGENT.md files for agent-based development workflows</description>
+      <functionality>
+        Similar to .cursor/rules/ generator but for AGENT.md format:
+        - Analyze project structure
+        - Extract tech stack
+        - Generate agent instructions
+        - Include best practices
+        - Add security guidelines
+      </functionality>
+      <cli_command>sherpa generate agent --output AGENT.md</cli_command>
+      <testing>Generate AGENT.md for test project, verify quality</testing>
+    </feature>
+    
+    <!-- Local Vector DB (No Cloud Needed!) -->
+    <feature category="infrastructure">
+      <title>Local Vector DB with Qdrant</title>
+      <description>Replace AWS Bedrock with local Qdrant for vector search</description>
+      <implementation>
+        - Add Qdrant to docker-compose.yml
+        - Create Qdrant client (sherpa/core/vector_db_client.py)
+        - Migrate snippets to Qdrant
+        - Semantic search with local embeddings
+        - No AWS credentials needed!
+      </implementation>
+      <benefits>
+        - Works offline
+        - No cloud costs
+        - Faster (local network)
+        - Privacy (data stays local)
+      </benefits>
+      <testing>Query snippets, verify semantic search works</testing>
+    </feature>
+  </critical_enhancements>
+  
+  <high_priority_enhancements priority="2">
+    <!-- GitHub Issues Integration -->
+    <feature category="integration">
+      <title>GitHub Issues Integration</title>
+      <description>Fetch issues from GitHub repos, sync progress back</description>
+      <functionality>
+        - Fetch issues from GitHub (PyGithub)
+        - Convert to SHERPA spec format
+        - Track progress
+        - Update issue status (comments, labels)
+        - CLI: sherpa init --source github --repo owner/repo
+      </functionality>
+      <testing>Connect to test repo, fetch issues, verify sync</testing>
+    </feature>
+    
+    <!-- Linear Integration -->
+    <feature category="integration">
+      <title>Linear Integration</title>
+      <description>Fetch issues from Linear workspace, sync progress</description>
+      <functionality>
+        - Fetch Linear issues (Linear API)
+        - Convert to SHERPA spec format
+        - Track progress in Linear
+        - Update issue status
+        - Team visibility
+        - CLI: sherpa init --source linear --team team-key
+      </functionality>
+      <testing>Connect to Linear workspace, fetch issues, verify sync</testing>
+    </feature>
+    
+    <!-- Kubernetes Deployment -->
+    <feature category="infrastructure">
+      <title>Kubernetes Deployment Manifests</title>
+      <description>Production-ready K8s manifests for cloud-agnostic deployment</description>
+      <deliverables>
+        - k8s/deployment.yaml (backend, frontend, db)
+        - k8s/service.yaml
+        - k8s/ingress.yaml
+        - k8s/configmap.yaml
+        - k8s/secrets.yaml (template)
+        - Helm chart (optional)
+      </deliverables>
+      <clouds_supported>
+        - AWS EKS
+        - Google GKE
+        - Azure AKS
+        - On-premises K8s
+      </clouds_supported>
+      <testing>Deploy to local K8s (kind/minikube), verify works</testing>
+    </feature>
+  </high_priority_enhancements>
+  
+  <medium_priority_enhancements priority="3">
+    <!-- Improvements from v1.0 Experience -->
+    <feature category="quality">
+      <title>Clean Up Any Remaining TODOs</title>
+      <description>Search for and complete/remove any TODO comments</description>
+      <command>grep -r "TODO\|FIXME\|WIP" sherpa/</command>
+      <target>Zero TODOs in production code</target>
+    </feature>
+    
+    <feature category="testing">
+      <title>Add Puppeteer E2E Tests</title>
+      <description>Browser automation tests for critical flows</description>
+      <tests_to_add>
+        - CLI generate test (E2E)
+        - Dashboard UI test
+        - Snippet browser test
+        - Session monitoring test
+      </tests_to_add>
+    </feature>
+    
+    <feature category="performance">
+      <title>Performance Optimization</title>
+      <description>Optimize database queries and API response times</description>
+      <targets>
+        - API responses < 200ms
+        - Database queries optimized
+        - Frontend bundle size < 500KB
+        - Lazy loading for heavy components
+      </targets>
+    </feature>
+    
+    <feature category="documentation">
+      <title>Enhanced Documentation</title>
+      <description>Improve README and add missing docs</description>
+      <additions>
+        - Architecture diagrams
+        - API documentation
+        - Deployment guides
+        - Troubleshooting section
+      </additions>
+    </feature>
+  </medium_priority_enhancements>
+  
+  <regression_testing>
+    <!-- CRITICAL: All 165 v1.0 features MUST still work! -->
+    <regression_suite>
+      <test category="cli">All 8 CLI commands still work</test>
+      <test category="api">All API endpoints still respond</test>
+      <test category="frontend">Frontend UI still functional</test>
+      <test category="database">Database operations still work</test>
+      <test category="azure">Azure DevOps integration still works</test>
+      <test category="knowledge">Snippet search still works</test>
+      <test category="harness">Autonomous runner still works</test>
+      <test category="monitoring">Session monitoring still works</test>
+    </regression_suite>
+    
+    <verification_process>
+      After each enhancement:
+      1. Run subset of regression tests
+      2. Verify no breaking changes
+      3. Fix any regressions immediately
+      4. Continue only when stable
+      
+      Before marking complete:
+      1. Run FULL regression suite (all 165 features)
+      2. All must pass
+      3. Document any changes to behavior
+    </verification_process>
+  </regression_testing>
+  
+  <quality_gates>
+    <!-- Enforced by autonomous-harness v2.0! -->
+    <gate>All v1.0 features still pass (165/165)</gate>
+    <gate>New features tested with Puppeteer E2E</gate>
+    <gate>Zero TODOs in new code</gate>
+    <gate>Security checklist verified</gate>
+    <gate>Browser integration tests pass</gate>
+    <gate>Agent Skills guidance followed</gate>
+    <gate>File organization maintained (< 20 root files)</gate>
+    <gate>Documentation updated</gate>
+    <gate>No scope creep (stop at spec completion!)</gate>
+  </quality_gates>
+  
+  <success_criteria>
+    <criterion>GitHub Issues integration working</criterion>
+    <criterion>Linear integration working</criterion>
+    <criterion>AGENT.md generator functional</criterion>
+    <criterion>Local vector DB (Qdrant) working</criterion>
+    <criterion>Kubernetes deployment successful</criterion>
+    <criterion>Harness code synced to v2.0</criterion>
+    <criterion>All 165 original features still pass</criterion>
+    <criterion>Grade: A+ (9.5/10) minimum</criterion>
+    <criterion>Production-ready for SaaS deployment</criterion>
+  </success_criteria>
+  
+  <estimated_effort>
+    <new_features>~40-50 enhancements</new_features>
+    <timeline>8-12 hours autonomous coding</timeline>
+    <sessions>~30-40 sessions with v2.0 harness</sessions>
+  </estimated_effort>
+</enhancement_spec>
+

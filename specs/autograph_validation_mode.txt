@@ -1,0 +1,86 @@
+<validation_spec>
+  <project_name>AutoGraph - Complete Validation & Test Suite</project_name>
+  <mode>validation</mode>
+  <approach>Validate existing code and build comprehensive test suite</approach>
+  
+  <mission>
+    AutoGraph has 658 features with code implemented.
+    BUT: No comprehensive test suite, no validation.
+    
+    Mission: Go through EACH feature, validate it works, build test suite.
+    
+    Process:
+    1. For each feature (marked passes: false):
+       - Check if code exists
+       - Write test for feature
+       - RUN the test
+       - If passes: mark as passing
+       - If fails: fix code, re-test, then mark passing
+    
+    Result: 658 validated features + 658 tests = Production-ready!
+  </mission>
+  
+  <strategy>
+    <phase name="validation">
+      For EVERY feature:
+      
+      Step 1: Find the code
+      - Search for related code in services/
+      - Understand how feature is implemented
+      - Document what exists
+      
+      Step 2: Write validation test
+      - Test the feature end-to-end
+      - Not just unit test - full workflow
+      - Use real browser if UI feature (Puppeteer!)
+      - Use real API calls if backend feature
+      
+      Step 3: Execute test (MANDATORY!)
+      - python3 test_feature_X.py
+      - Verify exit code 0 (success)
+      - Check output for errors
+      
+      Step 4: Mark based on result
+      - Test passes → "passes": true ✅
+      - Test fails → Fix code → Re-test → Then mark passing
+      
+      Step 5: Build test suite
+      - Save test in tests/validation/
+      - Add to regression suite
+      - Document test coverage
+    </phase>
+  </strategy>
+  
+  <quality_gates>
+    All 12 v2.1 gates apply, PLUS:
+    
+    <gate>Code existence: Verify code for feature exists</gate>
+    <gate>Test creation: Write test for EVERY feature</gate>
+    <gate>Test execution: RUN every test (no skipping!)</gate>
+    <gate>Test passes: Only mark passing if test succeeds</gate>
+    <gate>Browser validation: UI features tested in real browser</gate>
+    <gate>API validation: Backend features tested with real requests</gate>
+    <gate>Data validation: Verify data persists correctly</gate>
+    <gate>Regression suite: All tests saved for future regression</gate>
+  </quality_gates>
+  
+  <expected_sessions>200-300 sessions (2-3 features per session)</expected_sessions>
+  <expected_timeline>20-30 hours</expected_timeline>
+  
+  <deliverables>
+    <deliverable>658 validated features (all working!)</deliverable>
+    <deliverable>658 tests (comprehensive coverage!)</deliverable>
+    <deliverable>Full regression suite (re-runnable!)</deliverable>
+    <deliverable>Production-ready codebase (verified!)</deliverable>
+  </deliverables>
+  
+  <success_criteria>
+    <criterion>All 658 features validated (tested and working)</criterion>
+    <criterion>All 658 tests pass</criterion>
+    <criterion>Complete test suite in tests/validation/</criterion>
+    <criterion>Can run full regression: npm test (all pass!)</criterion>
+    <criterion>Zero untested code</criterion>
+    <criterion>Production confidence: 100%</criterion>
+  </success_criteria>
+</validation_spec>
+

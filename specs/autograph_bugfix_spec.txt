@@ -1,0 +1,69 @@
+<enhancement_spec>
+  <project_name>AutoGraph</project_name>
+  <base_version>v3.0 (654 features, has foundation issues)</base_version>
+  <target_version>v3.1 (Foundation solid, all core features working)</target_version>
+  <mode>bugfix</mode>
+  
+  <critical_fixes>
+    <fix priority="P0">
+      <issue>Database schema incomplete - missing columns cause failures</issue>
+      <tables_affected>files, versions, users, folders</tables_affected>
+      <solution>Audit all tables, add missing columns, verify queries work</solution>
+      <test>All CRUD operations succeed without schema errors</test>
+    </fix>
+    
+    <fix priority="P0">
+      <issue>Services showing unhealthy status</issue>
+      <services>auth-service, diagram-service, collaboration-service, integration-hub</services>
+      <solution>Debug health checks, fix startup issues, verify stay healthy</solution>
+      <test>All services show healthy status for 1+ hour</test>
+    </fix>
+    
+    <fix priority="P0">
+      <issue>Save diagram fails - "Failed to save" error in browser</issue>
+      <solution>Debug save endpoint, fix authorization, test end-to-end</solution>
+      <test>E2E test: Create diagram, draw, save, reopen (drawing persists!)</test>
+    </fix>
+    
+    <fix priority="P0">
+      <issue>Duplicate template fails</issue>
+      <solution>Fix template duplication endpoint, test with browser</solution>
+      <test>Can duplicate any template successfully</test>
+    </fix>
+    
+    <fix priority="P0">
+      <issue>Create folder sometimes fails</issue>
+      <solution>Debug folder creation, fix any schema/auth issues</solution>
+      <test>Folder creation succeeds 100% of time</test>
+    </fix>
+  </critical_fixes>
+  
+  <quality_gates>
+    <!-- v2.0 harness enforces these automatically! -->
+    <gate>Stop condition: Don't work beyond 654 features</gate>
+    <gate>Service health: All services healthy before testing</gate>
+    <gate>Database schema: All columns validated</gate>
+    <gate>Browser integration: All CRUD tested in browser</gate>
+    <gate>E2E tests: All critical workflows have Puppeteer tests</gate>
+    <gate>Zero TODOs: Complete email implementation or remove</gate>
+    <gate>Security: Review all auth code</gate>
+    <gate>Regression: All 654 features still work!</gate>
+  </quality_gates>
+  
+  <regression_testing>
+    <!-- CRITICAL: Preserve existing functionality -->
+    <requirement>All 654 existing features must still pass</requirement>
+    <method>Run regression_tester.py every 5 sessions</method>
+    <sample_size>10% random (65+ features tested)</sample_size>
+  </regression_testing>
+  
+  <success_criteria>
+    <criterion>All CRUD operations work in browser</criterion>
+    <criterion>Save persists changes reliably</criterion>
+    <criterion>All services healthy</criterion>
+    <criterion>Zero database schema errors</criterion>
+    <criterion>Clean browser console (no errors)</criterion>
+    <criterion>All 654 features still work (regression pass!)</criterion>
+  </success_criteria>
+</enhancement_spec>
+

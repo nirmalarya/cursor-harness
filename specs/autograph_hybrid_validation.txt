@@ -1,0 +1,232 @@
+<validation_spec>
+  <project_name>AutoGraph - Hybrid Validation & Test Suite Enhancement</project_name>
+  <mode>hybrid-validation</mode>
+  <base_version>v3.0 (658 features, 221 existing tests, quality unknown)</base_version>
+  <target_version>v3.2 (658 validated features, comprehensive test suite)</target_version>
+  
+  <approach>
+    Hybrid strategy: Leverage existing tests, improve where needed, create missing tests.
+    
+    NOT blind trust: Review test quality
+    NOT from scratch: Use existing good tests
+    BALANCED: Best of both worlds
+  </approach>
+  
+  <phases>
+    <phase name="assessment" sessions="1-10">
+      <objective>Review existing 221 tests and assess quality</objective>
+      
+      <process>
+        For each test file in scripts/tests/:
+        
+        1. Read the test file
+        2. Assess quality:
+           - ✅ GOOD: Tests complete workflow, uses real browser/API, checks persistence
+           - ⚠️ PARTIAL: Tests API only (no browser), or incomplete workflow
+           - ❌ BAD: Mocked everything, doesn't test real feature, or broken
+        
+        3. Categorize:
+           - good_tests.txt (can use as-is)
+           - partial_tests.txt (needs enhancement)
+           - bad_tests.txt (needs rewrite)
+           - missing_features.txt (no test exists)
+        
+        4. Create assessment report:
+           - X good tests (ready to run)
+           - Y partial tests (need enhancement)
+           - Z bad tests (need rewrite)
+           - W features with no tests (need creation)
+      </process>
+      
+      <deliverable>Test quality assessment report</deliverable>
+    </phase>
+    
+    <phase name="run-good-tests" sessions="11-30">
+      <objective>Run existing high-quality tests</objective>
+      
+      <process>
+        For each test in good_tests.txt:
+        
+        1. Execute the test:
+           python3 scripts/tests/test_X.py
+        
+        2. If test passes:
+           - Find corresponding feature in feature_list.json
+           - Mark as "passes": true
+           - Document in claude-progress.txt
+        
+        3. If test fails:
+           - Investigate why
+           - Fix the code (not the test!)
+           - Re-run until passes
+           - Then mark as passing
+        
+        4. Move test to tests/validated/
+           - Keep validated tests organized
+      </process>
+      
+      <expected>~100-150 features validated quickly</expected>
+    </phase>
+    
+    <phase name="enhance-partial-tests" sessions="31-60">
+      <objective>Improve partial tests to be comprehensive</objective>
+      
+      <process>
+        For each test in partial_tests.txt:
+        
+        1. Read existing test
+        2. Identify gaps:
+           - Missing browser testing?
+           - Missing persistence check?
+           - Missing error cases?
+           - Only tests happy path?
+        
+        3. Enhance the test:
+           - Add Puppeteer browser testing if UI feature
+           - Add persistence verification (reload/restart)
+           - Add error case testing
+           - Make it comprehensive
+        
+        4. Run enhanced test:
+           - Execute with python3
+           - Verify passes
+           - Mark feature passing
+        
+        5. Save enhanced test:
+           - Replace old test
+           - Document improvements
+      </process>
+      
+      <expected>~50-100 features validated with enhanced tests</expected>
+    </phase>
+    
+    <phase name="rewrite-bad-tests" sessions="61-90">
+      <objective>Rewrite low-quality tests</objective>
+      
+      <process>
+        For tests in bad_tests.txt:
+        
+        1. Delete bad test
+        2. Write NEW test following v2.1 standards:
+           - Test complete workflow
+           - Use real browser if UI (Puppeteer!)
+           - Use real API calls (not mocks!)
+           - Verify persistence
+           - Check error handling
+        
+        3. Run new test:
+           - Execute and verify passes
+           - Fix feature if test reveals issues
+        
+        4. Mark feature passing
+      </process>
+      
+      <expected>~20-50 features validated with new tests</expected>
+    </phase>
+    
+    <phase name="create-missing-tests" sessions="91-120">
+      <objective>Create tests for features without tests</objective>
+      
+      <process>
+        For features in missing_features.txt:
+        
+        1. Read feature description
+        2. Find code that implements it
+        3. Write comprehensive test:
+           - Complete user workflow
+           - Browser testing if UI
+           - API testing if backend
+           - Persistence verification
+        
+        4. Run test
+        5. Fix feature if needed
+        6. Mark passing when verified
+      </process>
+      
+      <expected>~50-100 features validated with new tests</expected>
+    </phase>
+    
+    <phase name="final-validation" sessions="121-130">
+      <objective>Full regression and smoke test</objective>
+      
+      <process>
+        1. Run ALL tests (now 658 tests total!)
+        2. Verify all pass
+        3. Run regression suite (random 10%)
+        4. Run smoke test (critical flows in browser)
+        5. Verify 658/658 passing
+        6. Generate final report
+      </process>
+      
+      <deliverable>658/658 validated + comprehensive test suite</deliverable>
+    </phase>
+  </phases>
+  
+  <test_quality_criteria>
+    <good_test>
+      - Tests complete user workflow
+      - Uses real browser (Puppeteer) for UI features
+      - Uses real API calls (not mocks)
+      - Verifies data persistence (reload/restart)
+      - Tests error cases
+      - Has clear assertions
+      - Exits with 0 on pass, 1 on fail
+    </good_test>
+    
+    <partial_test>
+      - Tests feature but incomplete
+      - Missing browser testing
+      - Missing persistence check
+      - Only happy path
+      - Needs enhancement
+    </partial_test>
+    
+    <bad_test>
+      - Mocks everything
+      - Doesn't test real feature
+      - Broken/doesn't run
+      - Wrong assertions
+      - Needs rewrite
+    </bad_test>
+  </test_quality_criteria>
+  
+  <quality_gates>
+    All 12 v2.1 gates apply:
+    
+    1. Stop condition
+    2. Service health
+    3. Database validation
+    4. Browser integration
+    5. E2E testing
+    6. Zero TODOs
+    7. Security checklist
+    8. Regression testing
+    9. File organization
+    10. Test execution enforcement
+    11. Infrastructure validation
+    12. Smoke test suite
+  </quality_gates>
+  
+  <success_criteria>
+    <criterion>All 658 features validated and passing</criterion>
+    <criterion>Comprehensive test suite (658 tests, all pass)</criterion>
+    <criterion>Test quality: 90%+ rated as "good"</criterion>
+    <criterion>Browser E2E tests for all UI features</criterion>
+    <criterion>API tests for all backend features</criterion>
+    <criterion>Smoke test passes (critical flows work)</criterion>
+    <criterion>Full regression suite passes</criterion>
+    <criterion>Production confidence: 100%</criterion>
+  </success_criteria>
+  
+  <estimated_timeline>
+    Phase 1 (Assessment): 10 sessions
+    Phase 2 (Run good tests): 20 sessions  
+    Phase 3 (Enhance partial): 30 sessions
+    Phase 4 (Rewrite bad): 30 sessions
+    Phase 5 (Create missing): 30 sessions
+    Phase 6 (Final validation): 10 sessions
+    
+    Total: ~130 sessions (~12-15 hours)
+  </estimated_timeline>
+</validation_spec>
+

@@ -1,0 +1,129 @@
+<enhancement_spec>
+  <project_name>AutoGraph Foundation - Complete Fix</project_name>
+  <base_version>v3.0 (654 features, foundation issues remain)</base_version>
+  <target_version>v3.1 (Foundation solid, browser-tested, production-ready)</target_version>
+  <mode>bugfix</mode>
+  
+  <critical_issues_found>
+    <issue priority="P0">
+      <name>Frontend bypasses API Gateway</name>
+      <description>Frontend makes direct calls to diagram-service (port 8082) instead of using API Gateway (port 8080)</description>
+      <impact>CORS issues, no centralized routing, architectural violation</impact>
+      <location>services/frontend/app/canvas/[id]/page.tsx line 163</location>
+      <fix>Change all service calls to go through API Gateway</fix>
+      <verification>Check Network tab - all calls should be to localhost:8080, not 8082/8083/8084</verification>
+    </issue>
+    
+    <issue priority="P0">
+      <name>Save diagram fails in browser</name>
+      <description>API works with curl, but browser shows "Failed to save diagram"</description>
+      <impact>Users cannot save their work - CRITICAL!</impact>
+      <root_cause>Frontend architecture issue (direct service calls + possible CORS)</root_cause>
+      <fix>Route through API Gateway, verify CORS, test in ACTUAL browser</fix>
+      <verification>Create diagram in browser, draw, save, reload - drawing persists</verification>
+    </issue>
+    
+    <issue priority="P0">
+      <name>Old diagrams don't exist in database</name>
+      <description>Diagram IDs in URL return 0 rows from database</description>
+      <impact>Cannot load/edit existing diagrams</impact>
+      <fix>Clean up orphaned references, ensure diagram creation actually persists</fix>
+      <verification>Create diagram, verify in database, reload page - can still access</verification>
+    </issue>
+  </critical_issues_found>
+  
+  <architecture_requirements>
+    <requirement>
+      <name>API Gateway Pattern</name>
+      <description>ALL frontend → backend calls MUST go through API Gateway</description>
+      <pattern>Frontend → API Gateway (8080) → Service (8082/8083/etc)</pattern>
+      <not_allowed>Frontend → Service directly ❌</not_allowed>
+    </requirement>
+    
+    <requirement>
+      <name>CORS Configuration</name>
+      <description>CORS configured on API Gateway only (single point)</description>
+      <verification>Browser DevTools Network tab shows no CORS errors</verification>
+    </requirement>
+    
+    <requirement>
+      <name>Service Discovery</name>
+      <description>Frontend uses environment variables, not hardcoded ports</description>
+      <pattern>NEXT_PUBLIC_API_URL from .env.local</pattern>
+    </requirement>
+  </architecture_requirements>
+  
+  <mandatory_testing>
+    <test type="browser-e2e" mandatory="true">
+      <name>Complete User Flow - Browser Test</name>
+      <steps>
+        1. Open browser (http://localhost:3000)
+        2. Register new user
+        3. Login
+        4. Create diagram
+        5. Draw shapes on canvas
+        6. Click Save button
+        7. Verify "Saved" message appears
+        8. Reload page
+        9. Verify drawing still there
+        10. Check F12 console - zero errors
+        11. Check F12 Network - all calls to :8080 (not :8082)
+      </steps>
+      <tools>Use Puppeteer MCP for browser automation</tools>
+      <acceptance>All 11 steps pass in REAL browser, not test script</acceptance>
+    </test>
+    
+    <test type="infrastructure" mandatory="true">
+      <name>Infrastructure Readiness</name>
+      <checks>
+        - MinIO buckets exist (diagrams, exports, uploads)
+        - PostgreSQL accessible and tables created
+        - Redis accessible
+        - All 10 services healthy
+        - API Gateway routing works
+      </checks>
+      <verification>curl each endpoint, verify responses</verification>
+    </test>
+    
+    <test type="api-integration" mandatory="true">
+      <name>API Gateway Integration</name>
+      <checks>
+        - API Gateway routes to all services
+        - CORS headers present on all responses
+        - Authentication flows through gateway
+        - File operations work through gateway
+      </checks>
+      <verification>All API calls via :8080, not direct to services</verification>
+    </test>
+  </mandatory_testing>
+  
+  <quality_gates>
+    <!-- v2.1 enforces 12 gates - all apply! -->
+    <gate>Stop condition: Exit when foundation solid</gate>
+    <gate>Service health: All 10 services healthy</gate>
+    <gate>Database validation: Schema complete</gate>
+    <gate>Browser integration: Test in REAL browser with Puppeteer</gate>
+    <gate>E2E testing: Complete workflows (register→login→create→save→verify)</gate>
+    <gate>Zero TODOs: No incomplete implementations</gate>
+    <gate>Security: JWT, authorization working</gate>
+    <gate>Regression: 654 features still work</gate>
+    <gate>File organization: Clean structure</gate>
+    <gate>Test execution: ACTUALLY RUN tests, verify they pass</gate>
+    <gate>Infrastructure validation: MinIO/Postgres/Redis ready</gate>
+    <gate>Smoke test: At completion, test critical flows in browser</gate>
+  </quality_gates>
+  
+  <success_criteria>
+    <criterion>Save works in browser (not just API!) - VERIFIED with Puppeteer</criterion>
+    <criterion>Create diagram works in browser - VERIFIED</criterion>
+    <criterion>Complete user flow works: register→login→create→draw→save→reload→drawing persists</criterion>
+    <criterion>All calls go through API Gateway (8080), not direct to services</criterion>
+    <criterion>Zero browser console errors</criterion>
+    <criterion>All 10 services healthy and accessible</criterion>
+    <criterion>Infrastructure initialized (buckets, databases, caches)</criterion>
+    <criterion>Smoke test passes: can use the app for real diagramming</criterion>
+  </success_criteria>
+  
+  <estimated_sessions>5-10 sessions with REAL browser testing</estimated_sessions>
+</enhancement_spec>
+

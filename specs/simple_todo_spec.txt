@@ -1,0 +1,35 @@
+<application_specification>
+  <project_name>Simple Todo API</project_name>
+  
+  <overview>
+    A simple REST API for managing todo items with user authentication.
+    Built with FastAPI and PostgreSQL.
+  </overview>
+  
+  <technology_stack>
+    <backend>
+      <language>Python 3.12</language>
+      <framework>FastAPI</framework>
+      <database>PostgreSQL</database>
+      <orm>SQLAlchemy</orm>
+    </backend>
+  </technology_stack>
+  
+  <core_features>
+    <feature>User registration with email and password</feature>
+    <feature>User login with JWT tokens</feature>
+    <feature>Create todo items</feature>
+    <feature>List user's todos</feature>
+    <feature>Update todo items</feature>
+    <feature>Delete todo items</feature>
+    <feature>Mark todos as complete</feature>
+  </core_features>
+  
+  <success_criteria>
+    <criterion>All API endpoints work</criterion>
+    <criterion>Tests pass (unit + integration)</criterion>
+    <criterion>Can run with Docker Compose</criterion>
+    <criterion>API documentation generated</criterion>
+  </success_criteria>
+</application_specification>
+
