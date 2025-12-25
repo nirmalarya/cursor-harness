@@ -21,9 +21,9 @@ AUTO_CONTINUE_DELAY_SECONDS = 3
 async def run_autonomous_agent(
     project_dir: Path,
     model: str,
-    max_iterations: Optional[int],
-    initializer_prompt: str,
-    coding_prompt: str,
+    max_iterations: Optional[int] = None,
+    mode: str = "greenfield",
+    spec_file: Optional[str] = None,
 ) -> None:
     """
     Run the autonomous agent loop using Cursor CLI.
@@ -32,15 +32,19 @@ async def run_autonomous_agent(
         project_dir: Directory for the project
         model: Cursor model to use (e.g., sonnet-4, gpt-5, sonnet-4-thinking)
         max_iterations: Maximum number of iterations (None for unlimited)
-        initializer_prompt: Prompt for first session
-        coding_prompt: Prompt for continuation sessions
+        mode: Development mode (greenfield, enhancement, bugfix)
+        spec_file: Path to specification file (required for enhancement/bugfix)
     """
+    from prompts import get_initializer_prompt, get_coding_prompt, copy_spec_to_project
     print("\n" + "=" * 70)
     print("  CURSOR AUTONOMOUS CODING AGENT")
     print("  (Using Cursor CLI)")
     print("=" * 70)
     print(f"\nProject directory: {project_dir.resolve()}")
     print(f"Model: {model}")
+    print(f"Mode: {mode}")
+    if spec_file:
+        print(f"Spec file: {spec_file}")
     if max_iterations:
         print(f"Max iterations: {max_iterations}")
     else:
@@ -54,20 +58,37 @@ async def run_autonomous_agent(
     security_validator = SecurityValidator()
 
     # Check if this is a fresh start or continuation
-    feature_file = project_dir / "feature_list.json"
-    is_first_run = not feature_file.exists()
+    spec_dir = project_dir / "spec"
+    feature_file = spec_dir / "feature_list.json"
+    enhancement_spec_file = spec_dir / "enhancement_spec.txt"
+    
+    # Determine if this is the first run
+    if mode in ["enhancement", "bugfix"]:
+        # Enhancement mode: first run if no enhancement_spec.txt exists
+        is_first_run = not enhancement_spec_file.exists()
+    else:
+        # Greenfield mode: first run if no feature_list.json exists
+        is_first_run = not feature_file.exists()
 
     if is_first_run:
-        print("Fresh start - will use initializer agent")
+        print(f"🆕 Fresh start - will use initializer agent ({mode} mode)")
         print()
-        print("=" * 70)
-        print("  NOTE: First session takes 10-20+ minutes!")
-        print("  The agent is generating comprehensive test cases.")
-        print("  This may appear to hang - it's working.")
-        print("=" * 70)
+        if mode == "greenfield":
+            print("=" * 70)
+            print("  NOTE: First session takes 10-20+ minutes!")
+            print("  The agent is generating comprehensive test cases.")
+            print("  This may appear to hang - it's working.")
+            print("=" * 70)
+        else:
+            print("=" * 70)
+            print(f"  {mode.upper()} MODE - Enhancing existing project")
+            print("  Reading existing feature_list.json and appending new features.")
+            print("=" * 70)
         print()
+        # Copy the spec into the project directory for the agent to read
+        copy_spec_to_project(project_dir, spec_file, mode)
     else:
-        print("Continuing existing project")
+        print(f"Continuing existing project ({mode} mode)")
         print_progress_summary(project_dir)
 
     # Main loop
@@ -81,6 +102,30 @@ async def run_autonomous_agent(
             print(f"\nReached max iterations ({max_iterations})")
             print("To continue, run the script again without --max-iterations")
             break
+        
+        # Check if project is 100% complete (CRITICAL!)
+        # Skip on iteration 1 for enhancement/bugfix (let initializer add features first!)
+        if iteration > 1 or mode == "greenfield":
+            if feature_file.exists():
+                import json
+                try:
+                    with open(feature_file) as f:
+                        features = json.load(f)
+                    total = len(features)
+                    passing = sum(1 for f in features if f.get('passes', False))
+                    
+                    if passing >= total and total > 0:
+                        print("\n" + "=" * 70)
+                        print(f"🎉 PROJECT 100% COMPLETE ({passing}/{total} features passing)!")
+                        print("=" * 70)
+                        print("\nAll features are marked as passing.")
+                        print("The autonomous coding work is DONE.")
+                        print("\n✅ STOPPING AUTOMATICALLY - No further work needed!")
+                        print("\nTo add more features, create a new enhancement spec.")
+                        print("=" * 70)
+                        return  # Exit the function, stopping the loop
+                except (json.JSONDecodeError, IOError):
+                    pass  # Continue if we can't read the file
 
         # Print session header
         print_session_header(iteration, is_first_run)
@@ -92,12 +137,12 @@ async def run_autonomous_agent(
             security_validator=security_validator,
         )
 
-        # Choose prompt based on session type
+        # Choose prompt based on session type and mode
         if is_first_run:
-            prompt = initializer_prompt
+            prompt = get_initializer_prompt(mode)
             is_first_run = False  # Only use initializer once
         else:
-            prompt = coding_prompt
+            prompt = get_coding_prompt(mode)
 
         # Run session
         status, response = await client.run_session(prompt)
