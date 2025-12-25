@@ -163,11 +163,9 @@ Get the first one and fetch its details with mcp_azure-devops_wit_get_work_item.
         fetcher_prompt = query_instruction + "\n" + fetcher_prompt
     
     # Create client
-    client = AgentClient(
+    client = CursorCLIClient(
         project_dir=project_dir,
-        model=model,
-        max_tokens=8000,
-        security_validator=SecurityValidator()
+        model=model
     )
     
     # Run fetcher session
