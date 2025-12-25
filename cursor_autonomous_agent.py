@@ -167,19 +167,21 @@ def main() -> None:
             else:
                 print("No MCP servers found in spec (will use Cursor defaults)\n")
 
-    # Load prompts
-    initializer_prompt = get_initializer_prompt()
-    coding_prompt = get_coding_prompt()
+    # Validate spec file for enhancement/bugfix modes
+    if args.mode in ["enhancement", "bugfix"] and not args.spec:
+        print(f"Error: --spec is required for {args.mode} mode")
+        print(f"\nExample: --spec specs/sherpa_enhancement_spec.txt")
+        return
 
-    # Run the agent
+    # Run the agent (prompts loaded inside runner based on mode)
     try:
         asyncio.run(
             run_autonomous_agent(
                 project_dir=project_dir,
                 model=args.model,
                 max_iterations=args.max_iterations,
-                initializer_prompt=initializer_prompt,
-                coding_prompt=coding_prompt,
+                mode=args.mode,
+                spec_file=args.spec,
             )
         )
     except KeyboardInterrupt:
