@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include VERSION
+include requirements.txt
+recursive-include cursor_harness/prompts *.md *.txt
+recursive-include cursor_harness/specs *.txt
+recursive-include cursor_harness/prompts/multi-agent *.md
+

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cursor-harness"
+version = "2.3.0-dev"
+description = "Autonomous coding harness with multi-agent workflow and Azure DevOps integration"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Nirmalarya", email = "nirmalarya@example.com"}
+]
+keywords = ["autonomous", "coding", "harness", "ai", "multi-agent", "azure-devops", "sdlc"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.14",
+]
+
+dependencies = [
+    "anthropic>=0.40.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/nirmalarya/cursor-autonomous-harness"
+Repository = "https://github.com/nirmalarya/cursor-autonomous-harness"
+Issues = "https://github.com/nirmalarya/cursor-autonomous-harness/issues"
+
+[project.scripts]
+cursor-harness = "cursor_harness_cli:main"
+
+[tool.setuptools]
+packages = ["cursor_harness"]
+
+[tool.setuptools.package-data]
+cursor_harness = [
+    "prompts/*.md",
+    "prompts/**/*.md",
+    "specs/*.txt",
+]
+
