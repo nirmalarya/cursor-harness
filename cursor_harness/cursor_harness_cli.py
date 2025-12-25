@@ -20,8 +20,8 @@ import asyncio
 import sys
 from pathlib import Path
 
-from cursor_agent_runner import run_autonomous_agent
-from autonomous_backlog_runner import run_autonomous_backlog
+from .cursor_agent_runner import run_autonomous_agent
+from .autonomous_backlog_runner import run_autonomous_backlog
 
 
 VERSION = "2.3.0-dev"

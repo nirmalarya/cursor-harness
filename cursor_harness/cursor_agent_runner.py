@@ -9,11 +9,11 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
-from anthropic_client import AgentClient
-from progress import count_features, print_progress_summary, print_session_header
-from security import SecurityValidator
-from multi_agent_mode import MultiAgentWorkflow
-from azure_devops_integration import AzureDevOpsIntegration
+from .anthropic_client import AgentClient
+from .progress import count_features, print_progress_summary, print_session_header
+from .security import SecurityValidator
+from .multi_agent_mode import MultiAgentWorkflow
+from .azure_devops_integration import AzureDevOpsIntegration
 
 
 # Configuration

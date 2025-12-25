@@ -1,311 +1,206 @@
-# cursor-autonomous-harness
+# cursor-harness
 
-Production-ready autonomous coding harness using **Cursor CLI + Claude Code SDK**. Build complete applications autonomously with a two-agent pattern (initializer + coding agents).
+**Enterprise-grade autonomous coding harness with multi-agent workflow and Azure DevOps integration.**
 
-**Proven Success:** Built [AutoGraph v3.0](https://github.com/nirmalarya/autograph) - 679 features, full-stack microservices platform.
-
----
-
-## Features
-
-- **Two-agent pattern**: Initializer (session 1) + Coding agents (sessions 2+)
-- **Cursor CLI integration**: Uses `cursor agent --print --stream-json`
-- **Feature-driven development**: Structured feature_list.json tracking
-- **Session management**: Auto-resume with fresh context windows
-- **Security**: Bash allowlist + filesystem sandbox
-- **Git integration**: Automatic commits per session
-- **Browser automation**: Puppeteer MCP for E2E testing
-- **Progress tracking**: Real-time monitoring and logging
+[![Version](https://img.shields.io/badge/version-2.3.0--dev-blue)](https://github.com/nirmalarya/cursor-harness)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 
-## Prerequisites
+## 🎯 What is cursor-harness?
 
-1. **Cursor CLI** installed and authenticated
-   ```bash
-   cursor --version
-   # If not installed: https://cursor.sh/
-   ```
+**Autonomous coding harness that:**
+- Implements features from specifications
+- Validates existing codebases
+- Processes Azure DevOps backlogs continuously
+- Runs multi-agent workflows (Architect → Engineer → Tester → CodeReview → Security → DevOps)
+- Enforces 12 quality gates
+- Works for any project type (web, API, CLI, desktop, mobile)
 
-2. **Python 3.11+**
-   ```bash
-   python3 --version
-   ```
-
-3. **Git** configured
-   ```bash
-   git config --global user.name "Your Name"
-   git config --global user.email "you@example.com"
-   ```
+**Built on:** Anthropic's autonomous agent pattern (initializer + coder sessions)
 
 ---
 
-## Installation
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/nirmalarya/cursor-autonomous-harness.git
-cd cursor-autonomous-harness
+# Install with pipx (recommended)
+pipx install git+https://github.com/nirmalarya/cursor-harness
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Verify Cursor CLI works
-cursor agent --help
+# Or for development
+git clone https://github.com/nirmalarya/cursor-harness
+cd cursor-harness
+pipx install -e .
 ```
 
----
-
-## Usage
-
-### Start New Project
+### Usage
 
 ```bash
-python3 cursor_autonomous_agent.py --project-dir ./my-project
+# Start new project
+cursor-harness greenfield ./my-app --spec specs/todo_api.txt
 
-# The harness will:
-# 1. Session 1: Generate feature_list.json from spec
-# 2. Sessions 2+: Implement features autonomously
-# 3. Auto-commit after each session
-# 4. Continue until all features pass
+# Add features to existing project
+cursor-harness enhance ./my-app --spec specs/new_features.txt
+
+# Fix bugs
+cursor-harness bugfix ./my-app --spec specs/bugs.txt
+
+# Process Azure DevOps backlog (Enterprise!)
+cursor-harness backlog ./togglr --project togglr --epic Epic-3
+
+# Validate existing codebase
+cursor-harness validate ./my-app
 ```
 
-### Continue Existing Project
+---
 
+## ✨ Features
+
+### **12 Quality Gates**
+1. Stop condition (no scope creep)
+2. Service health checks
+3. Database schema validation
+4. Browser integration testing
+5. E2E testing (Puppeteer/Playwright)
+6. Zero TODOs policy
+7. Security checklist
+8. Regression testing
+9. File organization
+10. Test execution enforcement
+11. Infrastructure validation
+12. Smoke test suite
+
+### **Multiple Modes**
+- **Greenfield:** Build new projects from scratch
+- **Enhancement:** Add features to existing projects
+- **Bugfix:** Fix issues systematically
+- **Validation:** Test existing code comprehensively
+- **Autonomous Backlog:** Continuous Azure DevOps processing
+
+### **Multi-Agent Workflow**
+- **Architect:** Design & ADR creation
+- **Engineer:** TDD implementation
+- **Tester:** E2E tests & coverage
+- **CodeReview:** Quality enforcement
+- **Security:** OWASP compliance
+- **DevOps:** Deployment readiness
+
+---
+
+## 🏢 Enterprise Features
+
+### **Azure DevOps Integration**
+- Fetch PBIs/Bugs from backlog
+- Run multi-agent workflow
+- Update work items after each agent
+- Mark as Done automatically
+- Continuous backlog processing
+
+### **Generic & Adaptable**
+Works for:
+- Web apps (React, Vue, Angular, Next.js)
+- APIs (FastAPI, Express, Django, Rails)
+- CLIs (Click, Typer, Commander)
+- Desktop apps (Electron, Tauri)
+- Mobile apps (React Native, Flutter)
+- Any tech stack!
+
+---
+
+## 📖 Documentation
+
+- [Installation Guide](INSTALL.md)
+- [Multi-Agent Workflow](docs/MULTI_AGENT_WORKFLOW_MODE.md)
+- [Autonomous Backlog Mode](docs/AUTONOMOUS_BACKLOG_MODE.md)
+- [Anthropic Harness Pattern](docs/MULTI_AGENT_WITH_HARNESS_PATTERN.md)
+- [TODO List](TODO_FOR_TOGGLR_INTEGRATION.md)
+
+---
+
+## 🎓 Examples
+
+### **Validate Existing Project**
 ```bash
-# Just run the same command - auto-resumes!
-python3 cursor_autonomous_agent.py --project-dir ./my-project
+cursor-harness validate ./my-legacy-app
+# Marks all features unverified
+# Systematically tests each one
+# Builds comprehensive test suite
+# Result: Fully validated codebase!
 ```
 
-### Monitor Progress
-
+### **Process Epic from Azure DevOps**
 ```bash
-# In another terminal
-./monitor_progress.sh ./my-project
+cursor-harness backlog ./enterprise-app \
+  --project my-project \
+  --epic Epic-3 \
+  --max-pbis 10
 
-# Or check manually
-cat ./my-project/cursor-progress.txt
-cat ./my-project/feature_list.json | grep '"passes": true' | wc -l
+# Processes 10 PBIs autonomously
+# Each through full multi-agent workflow
+# Updates Azure DevOps automatically
+# No human intervention needed!
 ```
 
 ---
 
-## Project Structure
+## 🏗️ Architecture
 
-```
-cursor-autonomous-harness/
-├── cursor_autonomous_agent.py  # Main entry point
-├── cursor_agent_runner.py      # Session management logic
-├── anthropic_client.py          # Claude SDK + Cursor CLI wrapper
-├── security.py                  # Bash allowlist & sandbox
-├── progress.py                  # Progress tracking utilities
-├── prompts.py                   # Prompt loading
-├── prompts/
-│   ├── app_spec.txt             # Example project spec
-│   ├── initializer_prompt.md    # Session 1 prompt
-│   └── coding_prompt.md         # Sessions 2+ prompt
-├── requirements.txt             # Python dependencies
-├── kill_cursor_agent.sh         # Emergency stop
-├── monitor_progress.sh          # Progress monitoring
-└── README.md                    # This file
-```
+**Based on Anthropic's autonomous agent pattern:**
+- **Session 1:** Initializer (plan work, generate feature_list.json)
+- **Session 2+:** Coder (implement features sequentially)
+- **Stops:** Automatically at 100% completion
 
-**Excluded from repo:**
-- `generations/` - Where built projects go (not committed)
-- `cursor_test/` - Test artifacts
-- Planning docs - Development notes
+**Multi-agent mode:**
+- Each agent runs full harness (not just one session!)
+- Architect: 6 sessions, Engineer: 11 sessions, Tester: 8 sessions
+- Total: 35-50 sessions per PBI
+- Respects the foundation pattern!
 
 ---
 
-## How It Works
+## 🤝 Contributing
 
-### Session 1: Initializer
+Contributions welcome!
 
-1. Reads `app_spec.txt` (your project specification)
-2. Generates comprehensive `feature_list.json` (100+ features)
-3. Creates `init.sh` setup script
-4. Initializes git repository
-
-### Sessions 2+: Coding Agent
-
-1. Reads `feature_list.json`
-2. Finds next feature with `"passes": false`
-3. Implements the feature
-4. Tests thoroughly
-5. Updates feature to `"passes": true`
-6. Commits to git
-7. Continues to next feature
-
-**Runs autonomously until all features pass!**
+1. Fork the repository
+2. Create feature branch
+3. Make changes
+4. Test thoroughly
+5. Submit pull request
 
 ---
 
-## Configuration
+## 📊 Project Status
 
-### Security
-
-Edit `security.py` to customize:
-- Bash command allowlist
-- Filesystem restrictions
-- MCP server permissions
-
-### Prompts
-
-Edit prompts to customize:
-- `prompts/initializer_prompt.md` - How features are generated
-- `prompts/coding_prompt.md` - How features are implemented
-
-### Project Spec
-
-Create your own `app_spec.txt`:
-```xml
-<application_specification>
-  <name>My App</name>
-  <description>What it does</description>
-  <features>
-    <feature>User authentication</feature>
-    <feature>Dashboard</feature>
-    <!-- ... -->
-  </features>
-  <technology_stack>
-    <backend>Python + FastAPI</backend>
-    <frontend>React + Vite</frontend>
-  </technology_stack>
-</application_specification>
-```
+- **Version:** 2.3.0-dev
+- **Status:** Beta (production-ready, actively developed)
+- **Tested on:** AutoGraph (658 features), SHERPA (165 features)
+- **Used for:** Togglr (enterprise feature flag platform)
 
 ---
 
-## Emergency Commands
+## 📝 License
 
-```bash
-# Stop the agent
-./kill_cursor_agent.sh
-
-# Or manually
-ps aux | grep cursor_autonomous | grep -v grep | awk '{print $2}' | xargs kill
-
-# Check progress
-cat generations/my-project/cursor-progress.txt | tail -50
-```
+MIT License - See [LICENSE](LICENSE) file
 
 ---
 
-## Success Story: AutoGraph v3.0
+## 🙏 Acknowledgments
 
-**Built with cursor-autonomous-harness v1.0:**
-
-- **Features:** 679/679 (100% complete)
-- **Time:** ~35-40 hours autonomous coding (165 sessions)
-- **Code:** 30,000+ lines Python + Next.js frontend
-- **Architecture:** 10 microservices + PostgreSQL + Redis + MinIO
-- **Result:** Full-stack AI-powered diagramming platform
-
-**What was built:**
-- User authentication & authorization
-- TLDraw canvas integration
-- AI-powered diagram generation
-- Real-time collaboration (WebSockets)
-- Export features (PNG, SVG, PDF, Mermaid)
-- Cloud integrations (AWS S3, Dropbox, Google Drive)
-- Version history & comments
-- Advanced search & organization
-
-**Quality:** B+ (8.5/10) - production-quality code, needs minor cleanup
+- Built on [Anthropic's autonomous agent pattern](https://docs.anthropic.com/)
+- Inspired by enterprise SDLC best practices
+- Tested on real-world projects
 
 ---
 
-## Comparison with autonomous-harness
+## 🔗 Links
 
-**cursor-autonomous-harness** (this repo):
-- Uses **Cursor CLI** (`cursor agent --print --stream-json`)
-- Claude via Cursor's CLI interface
-- Proven: Built AutoGraph (679 features)
-- Best for: Cursor users, large projects
-
-**autonomous-harness** (sister repo):
-- Uses **Claude Code SDK** (direct API)
-- Claude via Anthropic's SDK
-- Proven: Built SHERPA (165 features)  
-- Best for: API users, smaller projects
-
-**Both use the same pattern:**
-- Two-agent approach
-- Feature-driven development
-- Session management
-- Git integration
-- Security sandbox
+- **Repository:** https://github.com/nirmalarya/cursor-harness
+- **Issues:** https://github.com/nirmalarya/cursor-harness/issues
+- **Sister Project:** [autonomous-harness](https://github.com/nirmalarya/autonomous-harness) (Claude Agent SDK version)
 
 ---
 
-## Requirements
-
-- Python 3.11+
-- Cursor CLI installed and authenticated
-- Git configured
-- 8GB+ RAM recommended (for large projects)
-- Disk space for generated projects
-
----
-
-## Troubleshooting
-
-**Agent not starting:**
-```bash
-# Check Cursor CLI works
-cursor agent --help
-
-# Check authentication
-cursor --version
-```
-
-**Out of memory:**
-```bash
-# Reduce context by splitting large features
-# Or use smaller project scope
-```
-
-**Cursor streaming issues:**
-```bash
-# Use streaming client
-python3 cursor_client_streaming.py --project-dir ./my-project
-```
-
----
-
-## Contributing
-
-Based on Anthropic's autonomous-coding pattern. Enhancements welcome!
-
-**Planned for v2.0:**
-- Browser integration testing (CORS verification)
-- Security checklist enforcement
-- Puppeteer E2E testing (mandatory)
-- Enhancement mode (brownfield support)
-- Agent Skills support
-- Stop condition (prevent scope creep)
-- Zero TODOs policy
-
-See `docs/v2/` for enhancement roadmap.
-
----
-
-## License
-
-MIT License
-
----
-
-## Related Projects
-
-- **autonomous-harness**: Claude Code SDK version
-- **SHERPA**: Autonomous coding orchestrator (built with autonomous-harness)
-- **AutoGraph**: AI diagramming platform (built with cursor-autonomous-harness)
-
----
-
-## Acknowledgments
-
-Based on Anthropic's autonomous-coding pattern and examples.
-Uses Cursor CLI for agent interaction.
-
+**Built with ❤️ for autonomous software development**

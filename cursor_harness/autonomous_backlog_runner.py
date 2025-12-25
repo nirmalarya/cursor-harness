@@ -10,9 +10,9 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
-from azure_devops_integration import AzureDevOpsIntegration
-from multi_agent_mode import MultiAgentWorkflow
-from cursor_agent_runner import run_autonomous_agent
+from .azure_devops_integration import AzureDevOpsIntegration
+from .multi_agent_mode import MultiAgentWorkflow
+from .cursor_agent_runner import run_autonomous_agent
 import subprocess
 
 

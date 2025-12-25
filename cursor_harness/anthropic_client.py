@@ -11,7 +11,7 @@ from typing import Any
 
 import anthropic
 
-from tools import (
+from .tools import (
     BashTool,
     EditTool,
     GlobTool,
