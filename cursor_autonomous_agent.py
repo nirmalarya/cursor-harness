@@ -15,6 +15,7 @@ from pathlib import Path
 from cursor_agent_runner import run_autonomous_agent
 from prompts import copy_spec_to_project, get_coding_prompt, get_initializer_prompt
 from mcp_config import MCPConfigParser, create_cursor_mcp_config, install_mcp_servers
+from autonomous_backlog_runner import run_autonomous_backlog
 
 
 # Configuration
