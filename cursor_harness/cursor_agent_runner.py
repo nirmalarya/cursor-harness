@@ -9,7 +9,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
-from .anthropic_client import AgentClient
+from .cursor_cli_client import CursorCLIClient, check_cursor_prerequisites
 from .progress import count_features, print_progress_summary, print_session_header
 from .security import SecurityValidator
 from .multi_agent_mode import MultiAgentWorkflow
@@ -133,11 +133,9 @@ async def run_autonomous_agent(
         print_session_header(iteration, is_first_run)
 
         # Create client (fresh context for each session)
-        client = AgentClient(
+        client = CursorCLIClient(
             project_dir=project_dir,
             model=model,
-            max_tokens=8000,
-            security_validator=security_validator,
         )
 
         # Choose prompt based on session type and mode

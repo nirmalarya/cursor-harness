@@ -126,6 +126,20 @@ def cmd_validate(args):
 
 def main():
     """Main CLI entry point."""
+    
+    # Check Cursor prerequisites FIRST
+    is_ready, error_msg = check_cursor_prerequisites()
+    if not is_ready:
+        print("\n" + "="*70)
+        print("  CURSOR PREREQUISITES NOT MET")
+        print("="*70)
+        print(error_msg)
+        print("="*70 + "\n")
+        sys.exit(1)
+    
+    print("✅ Cursor CLI ready (using your Cursor subscription)")
+    print()
+    
     parser = argparse.ArgumentParser(
         prog="cursor-harness",
         description="Autonomous coding harness using Cursor CLI",
