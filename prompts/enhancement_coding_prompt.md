@@ -43,7 +43,7 @@ print(f'Enhancement features: {enhancement}')
 "
 
 # Read progress
-cat claude-progress.txt | tail -50
+cat cursor-progress.txt | tail -50
 ```
 
 ---
@@ -61,7 +61,7 @@ echo "Progress: $passing/$total features"
 if [ "$passing" = "$total" ]; then
     echo "🎉 ALL ENHANCEMENT FEATURES COMPLETE ($total/$total)!"
     echo "✅ STOPPING - All work done, do not continue!"
-    echo "Update claude-progress.txt with final status and exit."
+    echo "Update cursor-progress.txt with final status and exit."
     exit 0
 fi
 ```
@@ -175,7 +175,7 @@ echo "Checking regressions in related features..."
 **In enhancement mode, run FULL regression every 5 sessions:**
 
 ```bash
-session_num=$(cat claude-progress.txt | grep -c "SESSION" || echo "0")
+session_num=$(cat cursor-progress.txt | grep -c "SESSION" || echo "0")
 
 if [ $((session_num % 5)) -eq 0 ]; then
     echo "Session $session_num - Running FULL regression suite..."

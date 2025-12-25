@@ -25,7 +25,7 @@ project/
 │   └── fixtures/             # Test fixtures and helpers
 ├── .sessions/                 # Session artifacts (gitignored!)
 │   ├── SESSION_*.md          # Session summaries
-│   ├── claude-progress.txt   # Progress notes
+│   ├── cursor-progress.txt   # Progress notes
 │   └── baseline_features.txt # Regression baseline
 ├── scripts/                   # Utility scripts
 │   ├── setup/               # Setup and initialization

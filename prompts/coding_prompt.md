@@ -25,7 +25,7 @@ cat spec/feature_list.json | python -c "import json, sys; data=json.load(sys.std
 # If < 100 features: STOP! feature_list.json is incomplete! Complete it before coding!
 
 # 6. Read progress notes from previous sessions
-cat claude-progress.txt
+cat cursor-progress.txt
 
 # 7. Check recent git history
 git log --oneline -20
@@ -116,7 +116,7 @@ SMOKE_EOF
         echo "✅ SMOKE TESTS PASSED!"
         echo "✅ PROJECT 100% COMPLETE AND VERIFIED!"
         echo ""
-        echo "Update claude-progress.txt with final status."
+        echo "Update cursor-progress.txt with final status."
         echo "DO NOT continue - project is done!"
         exit 0
     else
@@ -491,7 +491,7 @@ git commit -m "Implement [feature name] - verified end-to-end
 
 ### STEP 9: UPDATE PROGRESS NOTES
 
-Update `claude-progress.txt` with:
+Update `cursor-progress.txt` with:
 - What you accomplished this session
 - Which test(s) you completed
 - Any issues discovered or fixed
@@ -502,7 +502,7 @@ Update `claude-progress.txt` with:
 
 Before context fills up:
 1. Commit all working code
-2. Update claude-progress.txt
+2. Update cursor-progress.txt
 3. Update feature_list.json if tests verified
 4. Ensure no uncommitted changes
 5. Leave app in working state (no broken features)

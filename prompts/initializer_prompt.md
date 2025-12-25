@@ -139,7 +139,7 @@ the highest-priority features from feature_list.json. Remember:
 
 Before your context fills up:
 1. Commit all work with descriptive messages
-2. Create `claude-progress.txt` with a summary of what you accomplished
+2. Create `cursor-progress.txt` with a summary of what you accomplished
 3. Ensure feature_list.json is complete and saved
 4. Leave the environment in a clean, working state
 

@@ -45,7 +45,7 @@ cat bugfix_spec.txt
 
 # Check existing code
 git log --oneline -20
-cat claude-progress.txt | tail -50
+cat cursor-progress.txt | tail -50
 ```
 
 ---

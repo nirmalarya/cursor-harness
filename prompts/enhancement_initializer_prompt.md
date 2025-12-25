@@ -221,7 +221,7 @@ Baseline features: ${existing_passing} must still pass"
 
 ### STEP 8: UPDATE PROGRESS NOTES
 
-**Create or append to claude-progress.txt:**
+**Create or append to cursor-progress.txt:**
 
 ```
 ================================================================================
