@@ -350,6 +350,27 @@ def get_command_for_validation(cmd: str, segments: list[str]) -> str:
     return ""
 
 
+class SecurityValidator:
+    """Security validation for bash commands."""
+    
+    def validate_command(self, command: str) -> tuple[bool, str]:
+        """
+        Validate if command is allowed.
+        
+        Returns: (is_allowed, reason_if_blocked)
+        """
+        commands = extract_commands(command)
+        
+        if not commands:
+            return False, "Could not parse command"
+        
+        for cmd in commands:
+            if cmd not in ALLOWED_COMMANDS:
+                return False, f"Command '{cmd}' not in allowed list"
+        
+        return True, ""
+
+
 async def bash_security_hook(input_data, tool_use_id=None, context=None):
     """
     Pre-tool-use hook that validates bash commands using an allowlist.
