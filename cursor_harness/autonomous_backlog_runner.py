@@ -7,13 +7,15 @@ Runs continuous backlog processing from Azure DevOps.
 """
 
 import asyncio
+import json
+import subprocess
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 from .azure_devops_integration import AzureDevOpsIntegration
 from .multi_agent_mode import MultiAgentWorkflow
 from .cursor_agent_runner import run_autonomous_agent
-import subprocess
 import subprocess
 
 
