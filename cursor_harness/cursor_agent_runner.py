@@ -113,81 +113,81 @@ async def run_autonomous_agent(
                 print(f"\nReached max iterations ({max_iterations})")
                 print("To continue, run the script again without --max-iterations")
                 break
-        
-        # Check if project is 100% complete (CRITICAL!)
-        # Skip on iteration 1 for enhancement/bugfix (let initializer add features first!)
-        if iteration > 1 or mode == "greenfield":
-            if feature_file.exists():
-                import json
-                try:
-                    with open(feature_file) as f:
-                        features = json.load(f)
-                    total = len(features)
-                    passing = sum(1 for f in features if f.get('passes', False))
-                    
-                    if passing >= total and total > 0:
-                        print("\n" + "=" * 70)
-                        print(f"🎉 PROJECT 100% COMPLETE ({passing}/{total} features passing)!")
-                        print("=" * 70)
-                        print("\nAll features are marked as passing.")
-                        print("The autonomous coding work is DONE.")
-                        print("\n✅ STOPPING AUTOMATICALLY - No further work needed!")
-                        print("\nTo add more features, create a new enhancement spec.")
-                        print("=" * 70)
-                        return  # Exit the function, stopping the loop
-                except (json.JSONDecodeError, IOError):
-                    pass  # Continue if we can't read the file
+            
+            # Check if project is 100% complete (CRITICAL!)
+            # Skip on iteration 1 for enhancement/bugfix (let initializer add features first!)
+            if iteration > 1 or mode == "greenfield":
+                if feature_file.exists():
+                    import json
+                    try:
+                        with open(feature_file) as f:
+                            features = json.load(f)
+                        total = len(features)
+                        passing = sum(1 for f in features if f.get('passes', False))
+                        
+                        if passing >= total and total > 0:
+                            print("\n" + "=" * 70)
+                            print(f"🎉 PROJECT 100% COMPLETE ({passing}/{total} features passing)!")
+                            print("=" * 70)
+                            print("\nAll features are marked as passing.")
+                            print("The autonomous coding work is DONE.")
+                            print("\n✅ STOPPING AUTOMATICALLY - No further work needed!")
+                            print("\nTo add more features, create a new enhancement spec.")
+                            print("=" * 70)
+                            return  # Exit the function, stopping the loop
+                    except (json.JSONDecodeError, IOError):
+                        pass  # Continue if we can't read the file
 
-        # Print session header
-        print_session_header(iteration, is_first_run)
+            # Print session header
+            print_session_header(iteration, is_first_run)
 
-        # Create client (fresh context for each session, but shares MCP manager)
-        client = CursorMCPClient(
-            project_dir=project_dir,
-            model=model,
-            mcp_manager=mcp_manager
-        )
+            # Create client (fresh context for each session, but shares MCP manager)
+            client = CursorMCPClient(
+                project_dir=project_dir,
+                model=model,
+                mcp_manager=mcp_manager
+            )
 
-        # Choose prompt based on session type and mode
-        if is_first_run:
-            prompt = get_initializer_prompt(mode)
-            is_first_run = False  # Only use initializer once
-        else:
-            prompt = get_coding_prompt(mode)
+            # Choose prompt based on session type and mode
+            if is_first_run:
+                prompt = get_initializer_prompt(mode)
+                is_first_run = False  # Only use initializer once
+            else:
+                prompt = get_coding_prompt(mode)
 
-        # Run session
-        status, response = await client.run_session(prompt)
+            # Run session
+            status, response = await client.run_session(prompt)
 
-        # Handle status
-        if status == "complete":
-            print("\nAgent completed this session")
-            print_progress_summary(project_dir)
+            # Handle status
+            if status == "complete":
+                print("\nAgent completed this session")
+                print_progress_summary(project_dir)
 
-            # Check if all features are done
-            passing, total = count_features(project_dir)
-            if total > 0 and passing >= total:
-                print("\n🎉 All features complete! Project finished.")
-                break
+                # Check if all features are done
+                passing, total = count_features(project_dir)
+                if total > 0 and passing >= total:
+                    print("\n🎉 All features complete! Project finished.")
+                    break
 
-            # Auto-continue
-            print(f"\nAgent will auto-continue in {AUTO_CONTINUE_DELAY_SECONDS}s...")
-            await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
+                # Auto-continue
+                print(f"\nAgent will auto-continue in {AUTO_CONTINUE_DELAY_SECONDS}s...")
+                await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
 
-        elif status == "max_turns":
-            print("\nSession reached max turns")
-            print("Will continue with a fresh session...")
-            print_progress_summary(project_dir)
-            await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
+            elif status == "max_turns":
+                print("\nSession reached max turns")
+                print("Will continue with a fresh session...")
+                print_progress_summary(project_dir)
+                await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
 
-        elif status == "error":
-            print(f"\nSession encountered an error: {response}")
-            print("Will retry with a fresh session...")
-            await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
+            elif status == "error":
+                print(f"\nSession encountered an error: {response}")
+                print("Will retry with a fresh session...")
+                await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
 
-        # Small delay between sessions
-        if max_iterations is None or iteration < max_iterations:
-            print("\nPreparing next session...\n")
-            await asyncio.sleep(1)
+            # Small delay between sessions
+            if max_iterations is None or iteration < max_iterations:
+                print("\nPreparing next session...\n")
+                await asyncio.sleep(1)
 
     # Final summary
     print("\n" + "=" * 70)
