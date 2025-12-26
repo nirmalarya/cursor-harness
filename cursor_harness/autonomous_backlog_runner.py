@@ -313,9 +313,20 @@ async def run_multi_agent_workflow_for_pbi(
     
     agents = ["architect", "engineer", "tester", "code_review", "security", "devops"]
     
-    # Fetch PBI from Azure DevOps to get full details
-    print(f"📋 Fetching PBI details from Azure DevOps: {pbi_id}...")
-    pbi = ado.fetch_pbi(pbi_id)
+    # For now, use the spec file - the PBI was already fetched by the fetcher session
+    # In the future, we can fetch from Azure DevOps directly here
+    print(f"📋 Using PBI details from spec file: {pbi_id}...")
+    
+    # Create minimal PBI object from spec (spec already has all the info)
+    pbi = {
+        'id': pbi_id,
+        'fields': {
+            'System.Title': pbi_id,  # Will be populated from spec
+            'System.WorkItemType': 'PBI',
+            'System.Description': f"See {spec_file}",
+            'Microsoft.VSTS.Common.AcceptanceCriteria': f"See {spec_file}"
+        }
+    }
     
     # Create PBI context
     pbi_context = {
