@@ -15,6 +15,7 @@ from .progress import count_features, print_progress_summary, print_session_head
 from .security import SecurityValidator
 from .multi_agent_mode import MultiAgentWorkflow
 from .azure_devops_integration import AzureDevOpsIntegration
+from .project_scaffolder import ProjectScaffolder
 
 
 # Configuration
@@ -56,6 +57,10 @@ async def run_autonomous_agent(
 
     # Create project directory
     project_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Set up project structure (rules, docs, MCPs, sessions)
+    scaffolder = ProjectScaffolder(project_dir)
+    scaffolder.setup_project(mode=mode)
 
     # Initialize security validator
     security_validator = SecurityValidator()
