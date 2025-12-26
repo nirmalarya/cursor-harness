@@ -19,6 +19,8 @@ class MultiAgentWorkflow:
     def __init__(self, project_dir: Path, project_name: str):
         self.project_dir = project_dir
         self.project_name = project_name
+        # CRITICAL: PBI-specific state file!
+        self.state_file = project_dir / ".cursor" / f"workflow-{project_name}-state.json"
         
         self.agents = [
             "architect",
