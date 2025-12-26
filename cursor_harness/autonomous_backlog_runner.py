@@ -69,18 +69,21 @@ async def run_autonomous_backlog(
     # Check for existing workflow state (resume capability)
     workflow_state_file = project_dir / ".cursor" / "backlog-state.json"
     pbis_completed = 0
+    completed_pbi_ids = set()  # Track completed PBIs locally (prevents infinite loop!)
     
     if resume and workflow_state_file.exists():
-        import json
         try:
             with open(workflow_state_file) as f:
                 resume_state = json.load(f)
             pbis_completed = resume_state.get('pbis_completed', 0)
+            completed_pbi_ids = set(resume_state.get('completed_pbi_ids', []))
             last_pbi = resume_state.get('last_pbi_id', None)
             print(f"\n🔄 Resuming from previous session")
             print(f"   Completed: {pbis_completed} PBIs")
             if last_pbi:
                 print(f"   Last PBI: {last_pbi}")
+            if completed_pbi_ids:
+                print(f"   Skipping: {len(completed_pbi_ids)} already processed PBIs")
             print()
         except:
             pass
@@ -112,6 +115,14 @@ async def run_autonomous_backlog(
                 return
         
         pbi_id = fetcher_result['pbi_id']
+        
+        # Skip if already completed (prevents infinite loop!)
+        if pbi_id in completed_pbi_ids:
+            print(f"\n⏭️  PBI {pbi_id} already processed - skipping...")
+            print(f"   (Manually mark as Done in Azure DevOps to remove from 'New' state)\n")
+            await asyncio.sleep(10)
+            continue
+        
         spec_file = project_dir / "spec" / f"{pbi_id}_spec.txt"
         
         print(f"\n✅ PBI fetched: {pbi_id}")
@@ -139,15 +150,17 @@ async def run_autonomous_backlog(
             )
             
             pbis_completed += 1
+            completed_pbi_ids.add(pbi_id)  # Track locally to prevent reprocessing
+            
             print(f"\n🎉 PBI-{pbi_id} COMPLETE!")
             print(f"   Total: {pbis_completed}/{max_pbis or '∞'}\n")
             
             # Save progress state (resume capability)
-            import json
             workflow_state_file.parent.mkdir(parents=True, exist_ok=True)
             with open(workflow_state_file, 'w') as f:
                 json.dump({
                     'pbis_completed': pbis_completed,
+                    'completed_pbi_ids': list(completed_pbi_ids),  # Track all completed IDs
                     'last_pbi_id': pbi_id,
                     'timestamp': datetime.now().isoformat()
                 }, f, indent=2)
