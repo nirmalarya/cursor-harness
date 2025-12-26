@@ -44,23 +44,37 @@ async def run_single_agent(
     # Create initial prompt
     initial_prompt = f"""You are the {agent_name.title()} agent in a multi-agent workflow.
 
-Your ONLY job: Complete the {agent_name} tasks defined in the spec below.
+**MODE:** Multi-Agent Workflow (NOT enhancement mode!)
 
-When you've completed all {agent_name} tasks:
-- Commit your work with message: [PBI-XXX] [{agent_name.title()}] <type>: <description>
-- Create a completion marker file: .{agent_name}_complete
-- STOP working
+**CRITICAL:**
+- Do NOT create feature_list.json
+- Do NOT create ENHANCEMENT_PLAN.md
+- Do NOT create cursor-progress.txt
+- This is NOT enhancement/greenfield mode!
 
-SPEC:
+**YOUR JOB:**
+Complete ONLY the {agent_name} tasks defined in the spec below.
+
+**WHEN DONE:**
+1. Commit: [PBI-XXX] [{agent_name.title()}] <type>: <description>
+2. Create marker: .{agent_name}_complete
+3. STOP working
+
+**SPEC:**
 {agent_spec}
 
 ---
 
-**IMPORTANT:** 
-- Focus ONLY on {agent_name} responsibilities
-- Don't do other agents' work
-- Stop when YOUR tasks are done
-- Create .{agent_name}_complete when finished
+**YOUR RESPONSIBILITIES ({agent_name}):**
+- Architect: Create ADR
+- Engineer: Implement with TDD (tests first!)
+- Tester: Verify tests + E2E
+- CodeReview: Check code quality
+- Security: OWASP review
+- DevOps: Build verification
+
+Focus ONLY on YOUR agent's tasks. Don't do other agents' work.
+Create .{agent_name}_complete when YOUR tasks are done.
 """
     
     session = 0
