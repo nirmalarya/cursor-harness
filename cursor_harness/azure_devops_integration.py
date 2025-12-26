@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Azure DevOps Integration for cursor-autonomous-harness
-======================================================
+Azure DevOps Integration for cursor-harness
+============================================
 
-Integrates with Azure DevOps via Cursor's MCP support.
+Integrates with Azure DevOps via REST API (reliable for CLI automation).
 """
 
 from typing import Dict, List, Optional
-import subprocess
+import os
+import requests
 import json
 
 
@@ -17,35 +18,47 @@ class AzureDevOpsIntegration:
     def __init__(self, organization: str, project: str):
         self.organization = organization
         self.project = project
-    
-    def get_work_item(self, work_item_id: str) -> Optional[Dict]:
-        """
-        Fetch work item from Azure DevOps.
+        self.base_url = f"https://dev.azure.com/{organization}/{project}/_apis"
         
-        Uses Cursor's MCP Azure DevOps integration.
-        For now, this is a placeholder - would use actual MCP call.
-        """
+        # Get PAT token from environment
+        self.pat = os.environ.get("AZURE_DEVOPS_PAT")
+        if not self.pat:
+            print("⚠️  AZURE_DEVOPS_PAT not set - Azure DevOps queries will fail")
+            print("   Generate PAT: https://dev.azure.com/{org}/_usersSettings/tokens")
+            print("   Then: export AZURE_DEVOPS_PAT='your-pat-here'")
         
-        # TODO: Implement actual MCP call via Cursor
-        # This would be something like:
-        # result = cursor_mcp_call("azure-devops", "get_work_item", {
-        #     "id": work_item_id,
-        #     "project": self.project,
-        #     "expand": "relations"
-        # })
-        
-        # Placeholder - return mock data
-        return {
-            "id": work_item_id,
-            "fields": {
-                "System.Title": "Example PBI Title",
-                "System.Description": "Example description",
-                "System.WorkItemType": "Product Backlog Item",
-                "Microsoft.VSTS.Common.AcceptanceCriteria": "Example acceptance criteria",
-                "System.Tags": "Epic-3",
-                "Microsoft.VSTS.Common.Priority": 1
-            }
+        self.headers = {
+            "Content-Type": "application/json",
         }
+        if self.pat:
+            # PAT token uses basic auth with empty username
+            import base64
+            auth = base64.b64encode(f":{self.pat}".encode()).decode()
+            self.headers["Authorization"] = f"Basic {auth}"
+    
+    def get_work_item(self, work_item_id: int) -> Optional[Dict]:
+        """
+        Fetch work item from Azure DevOps via REST API.
+        
+        Args:
+            work_item_id: Numeric work item ID
+        
+        Returns:
+            Work item details or None if error
+        """
+        if not self.pat:
+            print(f"❌ Cannot fetch work item {work_item_id} - no PAT token")
+            return None
+        
+        url = f"{self.base_url}/wit/workitems/{work_item_id}?$expand=relations&api-version=7.1"
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed to fetch work item {work_item_id}: {e}")
+            return None
     
     def query_work_items(
         self,
@@ -54,13 +67,16 @@ class AzureDevOpsIntegration:
         state: str = "New",
         work_item_type: str = "Product Backlog Item",
         order_by: str = "Priority",
-        top: int = 1
-    ) -> List[Dict]:
+        top: int = 10
+    ) -> List[int]:
         """
-        Query work items from Azure DevOps.
+        Query work items from Azure DevOps via REST API.
         
-        Returns list of work items matching criteria.
+        Returns list of work item IDs matching criteria.
         """
+        if not self.pat:
+            print("❌ Cannot query work items - no PAT token")
+            return []
         
         # Build WIQL query
         if query:
@@ -85,38 +101,90 @@ class AzureDevOpsIntegration:
             ORDER BY [Microsoft.VSTS.Common.{order_by}] DESC
             """
         
-        # TODO: Execute query via MCP
-        # results = cursor_mcp_call("azure-devops", "query_work_items", {...})
+        # Execute WIQL query via REST API
+        url = f"{self.base_url}/wit/wiql?api-version=7.1"
         
-        # Placeholder
-        return []
+        try:
+            response = requests.post(
+                url,
+                headers=self.headers,
+                json={"query": wiql},
+                timeout=10
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Extract work item IDs
+            work_items = result.get("workItems", [])
+            ids = [item["id"] for item in work_items[:top]]
+            
+            print(f"📋 Found {len(ids)} work items matching criteria")
+            return ids
+        
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed to query work items: {e}")
+            return []
     
-    def add_comment(self, work_item_id: str, comment: str):
-        """Add comment to work item."""
+    def add_comment(self, work_item_id: int, comment: str):
+        """Add comment to work item via REST API."""
+        if not self.pat:
+            print(f"⚠️  Cannot add comment to {work_item_id} - no PAT token")
+            return
         
-        # TODO: Implement via MCP
-        # cursor_mcp_call("azure-devops", "add_work_item_comment", {
-        #     "project": self.project,
-        #     "workItemId": work_item_id,
-        #     "comment": comment
-        # })
+        url = f"{self.base_url}/wit/workitems/{work_item_id}/comments?api-version=7.1-preview.3"
         
-        print(f"Would add comment to {work_item_id}: {comment[:50]}...")
+        try:
+            response = requests.post(
+                url,
+                headers=self.headers,
+                json={"text": comment},
+                timeout=10
+            )
+            response.raise_for_status()
+            print(f"✅ Added comment to work item {work_item_id}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed to add comment: {e}")
     
-    def update_work_item(self, work_item_id: str, field: str, value: str):
-        """Update work item field."""
+    def update_work_item(self, work_item_id: int, field: str, value: str):
+        """Update work item field via REST API."""
+        if not self.pat:
+            print(f"⚠️  Cannot update {work_item_id} - no PAT token")
+            return
         
-        # TODO: Implement via MCP
-        # cursor_mcp_call("azure-devops", "update_work_item", {
-        #     "id": work_item_id,
-        #     "updates": [{"path": f"/fields/{field}", "value": value}]
-        # })
+        url = f"{self.base_url}/wit/workitems/{work_item_id}?api-version=7.1"
         
-        print(f"Would update {work_item_id}: {field} = {value}")
+        try:
+            response = requests.patch(
+                url,
+                headers={"Content-Type": "application/json-patch+json", **self.headers},
+                json=[{
+                    "op": "add",
+                    "path": f"/fields/{field}",
+                    "value": value
+                }],
+                timeout=10
+            )
+            response.raise_for_status()
+            print(f"✅ Updated work item {work_item_id}: {field} = {value}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed to update work item: {e}")
     
-    def mark_done(self, work_item_id: str):
+    def mark_done(self, work_item_id: int):
         """Mark work item as Done."""
         self.update_work_item(work_item_id, "System.State", "Done")
+    
+    def get_next_new_pbi(self, epic: Optional[str] = None) -> Optional[int]:
+        """
+        Get the next 'New' PBI from backlog.
+        
+        Args:
+            epic: Optional epic filter (e.g., "Epic-3")
+        
+        Returns:
+            Work item ID or None if no PBIs found
+        """
+        ids = self.query_work_items(epic=epic, state="New", top=1)
+        return ids[0] if ids else None
     
     def convert_to_spec(self, work_item: Dict) -> str:
         """Convert Azure DevOps work item to harness spec format."""
