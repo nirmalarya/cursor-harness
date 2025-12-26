@@ -158,8 +158,27 @@ This will return PBIs in Epic {epic} that are "New" (not started).
 Get the first one and fetch its details with mcp_azure-devops_wit_get_work_item.
 ```
 """
-        fetcher_prompt = fetcher_prompt.replace("{{WORK_ITEM_ID}}", "QUERY_RESULT")
-        fetcher_prompt = query_instruction + "\n" + fetcher_prompt
+    else:
+        # No epic filter - query all "New" PBIs
+        query_instruction = f"""
+## Query to Run
+
+Use Azure DevOps MCP to query for next work item:
+
+```
+Use mcp_azure-devops_search_workitem with:
+- searchText: ""  (empty - return all)
+- project: ["{ado_project}"]
+- state: ["New"]
+- top: 1
+
+This will return the first PBI that is "New" (not started).
+Get its ID and fetch full details with mcp_azure-devops_wit_get_work_item.
+```
+"""
+    
+    fetcher_prompt = fetcher_prompt.replace("{{WORK_ITEM_ID}}", "QUERY_RESULT")
+    fetcher_prompt = query_instruction + "\n" + fetcher_prompt
     
     # Create client
     client = CursorCLIClient(
