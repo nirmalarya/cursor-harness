@@ -188,7 +188,12 @@ async def run_autonomous_agent(
             if max_iterations is None or iteration < max_iterations:
                 print("\nPreparing next session...\n")
                 await asyncio.sleep(1)
-
+    
+    finally:
+        # Always cleanup MCP servers
+        print("\n🛑 Cleaning up MCP servers...")
+        mcp_manager.stop_all()
+    
     # Final summary
     print("\n" + "=" * 70)
     print("  SESSION COMPLETE")
