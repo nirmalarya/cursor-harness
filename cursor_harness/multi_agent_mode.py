@@ -19,8 +19,8 @@ class MultiAgentWorkflow:
     def __init__(self, project_dir: Path, project_name: str):
         self.project_dir = project_dir
         self.project_name = project_name
-        # CRITICAL: PBI-specific state file!
-        self.state_file = project_dir / ".cursor" / f"workflow-{project_name}-state.json"
+        # Simple: ONE workflow-state.json for current PBI
+        self.state_file = project_dir / ".cursor" / "workflow-state.json"
         
         self.agents = [
             "architect",
@@ -67,6 +67,25 @@ class MultiAgentWorkflow:
 """
         
         return prompt
+    
+    def initialize_for_pbi(self, pbi_id: str, title: str):
+        """
+        Initialize/reset workflow state for a new PBI.
+        
+        CRITICAL: Call this when starting a NEW PBI to reset state!
+        """
+        initial_state = {
+            "version": "1.1",
+            "workItemId": pbi_id,
+            "title": title,
+            "currentAgent": "Architect",
+            "completedAgents": [],  # Empty for new PBI!
+            "checkpoints": [],
+            "lastUpdated": datetime.now().isoformat()
+        }
+        
+        self.save_workflow_state(initial_state)
+        print(f"   ✅ Initialized workflow state for PBI {pbi_id}")
     
     def get_workflow_state(self) -> Dict:
         """Get current workflow state."""

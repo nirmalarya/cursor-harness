@@ -474,9 +474,11 @@ async def run_multi_agent_workflow_for_pbi(
         "acceptance_criteria": pbi['fields'].get('Microsoft.VSTS.Common.AcceptanceCriteria', '')
     }
     
-    # Initialize workflow manager with PBI-specific state file
-    # CRITICAL: Each PBI must have its own workflow state!
-    workflow = MultiAgentWorkflow(project_dir, f"PBI-{pbi_id}")
+    # Initialize workflow manager (one state file for current PBI)
+    workflow = MultiAgentWorkflow(project_dir, f"togglr")
+    
+    # CRITICAL: Reset state for this PBI!
+    workflow.initialize_for_pbi(pbi_id=pbi_id, title=f"PBI-{pbi_id}")
     
     # Initialize reviewer
     reviewer = AgentReviewer(project_dir)
