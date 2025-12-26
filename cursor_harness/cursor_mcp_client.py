@@ -2,10 +2,14 @@
 Cursor + MCP Hybrid Client
 ===========================
 
-Combines Cursor CLI for AI with direct MCP management for tools.
-Best of both worlds: Cursor subscription + working MCPs!
+DEPRECATED: Cursor CLI's MCP implementation is fundamentally broken in headless mode.
+
+Use ClaudeSDKClient instead (set ANTHROPIC_API_KEY).
+
+This file kept for reference/future Cursor CLI fixes.
 """
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional, Tuple
@@ -67,13 +71,13 @@ The following MCP tools are available for you to use:
 ---
 """
         
-        # Prepare cursor agent command (WITHOUT --approve-mcps since we manage MCPs directly)
+        # Use cursor-agent (standalone command, not subcommand!)
+        # Per official docs: https://cursor.com/docs/cli/mcp
         cmd = [
-            "cursor",
-            "agent",
-            "run",
-            "--print",
-            "--output-format", "text",
+            "cursor-agent",
+            "-p",  # Print mode
+            "--force",  # Allow file modifications
+            "--approve-mcps",  # Auto-approve MCP servers
             augmented_prompt,
         ]
         
@@ -152,31 +156,31 @@ The following MCP tools are available for you to use:
 
 def check_cursor_prerequisites() -> Tuple[bool, str]:
     """
-    Check if Cursor CLI is installed.
+    Check if cursor-agent CLI is installed.
     
     Returns:
         (is_ready, error_message)
     """
     try:
         result = subprocess.run(
-            ["cursor", "--version"],
+            ["cursor-agent", "--version"],
             capture_output=True,
             timeout=5
         )
         if result.returncode == 0:
             return True, ""
         else:
-            return False, "Cursor CLI not working"
+            return False, "cursor-agent not working"
     except FileNotFoundError:
         return False, """
-Cursor CLI not found!
+cursor-agent not found!
 
-Please install Cursor:
-  https://cursor.sh
+Please install Cursor CLI:
+  curl https://cursor.com/install -fsS | bash
 
-Then ensure the CLI is available:
-  cursor --version
+Then ensure cursor-agent is available:
+  cursor-agent --version
 """
     except Exception as e:
-        return False, f"Error checking Cursor: {e}"
+        return False, f"Error checking cursor-agent: {e}"
 
