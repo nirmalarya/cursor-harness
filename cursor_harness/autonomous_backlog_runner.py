@@ -330,7 +330,9 @@ async def create_agent_spec(
     Returns:
         Path to agent-specific spec file
     """
-    # Read PBI spec
+    # Read PBI spec (convert to Path if string)
+    if isinstance(pbi_spec_file, str):
+        pbi_spec_file = Path(pbi_spec_file)
     pbi_spec = pbi_spec_file.read_text()
     
     # Load agent rules
