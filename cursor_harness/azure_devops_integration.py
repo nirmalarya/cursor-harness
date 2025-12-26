@@ -64,7 +64,7 @@ class AzureDevOpsIntegration:
         self,
         query: str = None,
         epic: str = None,
-        state: str = "New",
+        state: Optional[str] = "New",  # None = all states!
         work_item_type: str = "Product Backlog Item",
         order_by: str = "Priority",
         top: int = 10
@@ -82,22 +82,26 @@ class AzureDevOpsIntegration:
         if query:
             wiql = query
         elif epic:
+            # With state filter
+            state_clause = f"AND [System.State] = '{state}'" if state else ""
             wiql = f"""
             SELECT [System.Id]
             FROM WorkItems
             WHERE [System.TeamProject] = '{self.project}'
               AND [System.WorkItemType] = '{work_item_type}'
               AND [System.Tags] CONTAINS '{epic}'
-              AND [System.State] = '{state}'
+              {state_clause}
             ORDER BY [Microsoft.VSTS.Common.{order_by}] DESC
             """
         else:
+            # With state filter
+            state_clause = f"AND [System.State] = '{state}'" if state else ""
             wiql = f"""
             SELECT [System.Id]
             FROM WorkItems
             WHERE [System.TeamProject] = '{self.project}'
               AND [System.WorkItemType] = '{work_item_type}'
-              AND [System.State] = '{state}'
+              {state_clause}
             ORDER BY [Microsoft.VSTS.Common.{order_by}] DESC
             """
         

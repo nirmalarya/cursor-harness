@@ -20,6 +20,46 @@ from .agent_reviewer import AgentReviewer, should_review_agent
 import subprocess
 
 
+def initialize_backlog_state(ado: AzureDevOpsIntegration, epic: Optional[str] = None) -> dict:
+    """
+    Initialize backlog state by querying Azure DevOps.
+    
+    GENERIC: Works for any project!
+    Returns state tracking all PBIs (like feature_list.json concept).
+    """
+    print("   Querying Azure DevOps for ALL PBIs...")
+    
+    # Query ALL PBIs (not just "New")
+    all_pbi_ids = ado.query_work_items(epic=epic, state=None, top=1000)  # All states
+    
+    # Get details for each
+    pbis = []
+    for pbi_id in all_pbi_ids:
+        work_item = ado.get_work_item(pbi_id)
+        if work_item:
+            state = work_item['fields'].get('System.State', 'New')
+            pbis.append({
+                "id": str(pbi_id),
+                "title": work_item['fields'].get('System.Title', ''),
+                "state": state,
+                "processed": state == "Done"  # Already done = processed!
+            })
+    
+    done_count = sum(1 for p in pbis if p['processed'])
+    new_count = sum(1 for p in pbis if not p['processed'])
+    
+    return {
+        "version": "1.0",
+        "initialized_at": datetime.now().isoformat(),
+        "epic_filter": epic or "All",
+        "total_pbis": len(pbis),
+        "done_count": done_count,
+        "new_count": new_count,
+        "pbis_completed": 0,  # Completed by cursor-harness
+        "pbis": pbis
+    }
+
+
 def get_latest_commit(project_dir: Path) -> str:
     """Get the latest git commit SHA."""
     try:
@@ -67,27 +107,29 @@ async def run_autonomous_backlog(
     # Initialize integrations
     ado = AzureDevOpsIntegration(azure_devops_org, azure_devops_project)
     
-    # Check for existing workflow state (resume capability)
-    workflow_state_file = project_dir / ".cursor" / "backlog-state.json"
-    pbis_completed = 0
-    completed_pbi_ids = set()  # Track completed PBIs locally (prevents infinite loop!)
+    # Initialize or load backlog state (GENERIC!)
+    backlog_state_file = project_dir / ".cursor" / "backlog-state.json"
     
-    if resume and workflow_state_file.exists():
-        try:
-            with open(workflow_state_file) as f:
-                resume_state = json.load(f)
-            pbis_completed = resume_state.get('pbis_completed', 0)
-            completed_pbi_ids = set(resume_state.get('completed_pbi_ids', []))
-            last_pbi = resume_state.get('last_pbi_id', None)
-            print(f"\n🔄 Resuming from previous session")
-            print(f"   Completed: {pbis_completed} PBIs")
-            if last_pbi:
-                print(f"   Last PBI: {last_pbi}")
-            if completed_pbi_ids:
-                print(f"   Skipping: {len(completed_pbi_ids)} already processed PBIs")
-            print()
-        except:
-            pass
+    if backlog_state_file.exists() and resume:
+        # Load existing state
+        print(f"\n🔄 Loading existing backlog state...")
+        with open(backlog_state_file) as f:
+            backlog_state = json.load(f)
+    else:
+        # Initialize by querying Azure DevOps (GENERIC!)
+        print(f"\n🔧 Initializing backlog state from Azure DevOps...")
+        backlog_state = initialize_backlog_state(ado, epic)
+        # Save initial state
+        backlog_state_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(backlog_state_file, 'w') as f:
+            json.dump(backlog_state, f, indent=2)
+        print(f"   ✅ Initialized with {backlog_state['total_pbis']} PBIs")
+        print(f"   ✅ {backlog_state['done_count']} already Done")
+        print(f"   ✅ {backlog_state['new_count']} to implement")
+    
+    pbis_completed = backlog_state.get('pbis_completed', 0)
+    
+    print()
     
     while True:
         # 1. FETCH SESSION: Query Azure DevOps and create spec
@@ -117,10 +159,11 @@ async def run_autonomous_backlog(
         
         pbi_id = fetcher_result['pbi_id']
         
-        # Skip if already completed (prevents infinite loop!)
-        if pbi_id in completed_pbi_ids:
+        # Check backlog state (like feature_list.json concept!)
+        pbi_entry = next((p for p in backlog_state['pbis'] if p['id'] == pbi_id), None)
+        
+        if pbi_entry and pbi_entry.get('processed'):
             print(f"\n⏭️  PBI {pbi_id} already processed - skipping...")
-            print(f"   (Manually mark as Done in Azure DevOps to remove from 'New' state)\n")
             await asyncio.sleep(10)
             continue
         
@@ -150,21 +193,24 @@ async def run_autonomous_backlog(
                 f"✅ PBI-{pbi_id} COMPLETE!\n\nAll 6 agents passed. Ready for deployment.\n\nSee PBI-{pbi_id}-COMPLETE.md for details."
             )
             
+            # Mark PBI as processed in backlog state (like feature_list.json!)
+            for pbi in backlog_state['pbis']:
+                if pbi['id'] == pbi_id:
+                    pbi['processed'] = True
+                    pbi['completed_at'] = datetime.now().isoformat()
+                    break
+            
             pbis_completed += 1
-            completed_pbi_ids.add(pbi_id)  # Track locally to prevent reprocessing
+            backlog_state['pbis_completed'] = pbis_completed
+            backlog_state['last_pbi_id'] = pbi_id
+            backlog_state['last_updated'] = datetime.now().isoformat()
             
             print(f"\n🎉 PBI-{pbi_id} COMPLETE!")
             print(f"   Total: {pbis_completed}/{max_pbis or '∞'}\n")
             
-            # Save progress state (resume capability)
-            workflow_state_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(workflow_state_file, 'w') as f:
-                json.dump({
-                    'pbis_completed': pbis_completed,
-                    'completed_pbi_ids': list(completed_pbi_ids),  # Track all completed IDs
-                    'last_pbi_id': pbi_id,
-                    'timestamp': datetime.now().isoformat()
-                }, f, indent=2)
+            # Save updated state
+            with open(backlog_state_file, 'w') as f:
+                json.dump(backlog_state, f, indent=2)
             
             # Check limit
             if max_pbis and pbis_completed >= max_pbis:
