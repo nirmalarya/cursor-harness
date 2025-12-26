@@ -122,13 +122,75 @@ async def run_fetcher_session(
     ado_org: str
 ) -> Optional[Dict]:
     """
-    Run special fetcher session to get next PBI via Azure DevOps MCP.
+    Fetch next PBI from Azure DevOps using REST API.
     
     Returns:
         Dict with pbi_id and spec_file path, or None if no PBIs
     """
+    print("  Fetching next PBI from Azure DevOps REST API...")
+    
+    # Use REST API directly (no MCP needed!)
+    from .azure_devops_integration import AzureDevOpsIntegration
+    
+    ado = AzureDevOpsIntegration(ado_org, ado_project)
+    
+    # Query for next New PBI
+    print(f"  Querying for 'New' PBIs{' in ' + epic if epic else ''}...")
+    pbi_id = ado.get_next_new_pbi(epic=epic)
+    
+    if not pbi_id:
+        print("  ❌ No 'New' PBIs found in backlog")
+        return None
+    
+    # Fetch full work item details
+    print(f"  📋 Fetching work item {pbi_id}...")
+    work_item = ado.get_work_item(pbi_id)
+    
+    if not work_item:
+        print(f"  ❌ Failed to fetch work item {pbi_id}")
+        return None
+    
+    # Convert to spec format
+    spec_content = ado.convert_to_spec(work_item)
+    
+    # Save spec file
+    spec_dir = project_dir / "spec"
+    spec_dir.mkdir(exist_ok=True)
+    
+    spec_file = spec_dir / f"{pbi_id}_spec.txt"
+    spec_file.write_text(spec_content)
+    
+    print(f"  ✅ Created spec: {spec_file}")
+    
+    # Commit spec file
+    import subprocess
+    subprocess.run(["git", "add", str(spec_file)], cwd=project_dir, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"spec: Add specification for work item {pbi_id}"],
+        cwd=project_dir,
+        capture_output=True
+    )
+    
+    print(f"  ✅ Committed spec file")
+    
+    return {
+        'pbi_id': str(pbi_id),
+        'spec_file': str(spec_file)
+    }
+
+
+async def run_fetcher_session_OLD_MCP_VERSION(
+    project_dir: Path,
+    model: str,
+    epic: Optional[str],
+    ado_project: str,
+    ado_org: str
+) -> Optional[Dict]:
+    """
+    DEPRECATED: Old MCP-based fetcher (doesn't work in CLI).
+    Kept for reference.
+    """
     from .cursor_mcp_client import CursorMCPClient
-    from .mcp_manager import create_mcp_manager_from_cursor_config
     
     print("  Running Azure DevOps Fetcher Session...")
     print("  (Agent will use MCP tools to fetch next PBI)\n")
