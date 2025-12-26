@@ -14,6 +14,22 @@ from .azure_devops_integration import AzureDevOpsIntegration
 from .multi_agent_mode import MultiAgentWorkflow
 from .cursor_agent_runner import run_autonomous_agent
 import subprocess
+import subprocess
+
+
+def get_latest_commit(project_dir: Path) -> str:
+    """Get the latest git commit SHA."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.stdout.strip() if result.returncode == 0 else "unknown"
+    except:
+        return "unknown"
 
 
 async def run_autonomous_backlog(
