@@ -151,14 +151,21 @@ class AzureDevOpsIntegration:
             print(f"⚠️  Cannot update {work_item_id} - no PAT token")
             return
         
-        url = f"{self.base_url}/wit/workitems/{work_item_id}?api-version=7.1"
+        # Use correct Azure DevOps API format
+        url = f"https://dev.azure.com/{self.organization}/{self.project}/_apis/wit/workitems/{work_item_id}?api-version=7.1"
+        
+        # Azure DevOps requires application/json-patch+json content type
+        patch_headers = {
+            "Content-Type": "application/json-patch+json",
+            "Authorization": self.headers.get("Authorization")
+        }
         
         try:
             response = requests.patch(
                 url,
-                headers={"Content-Type": "application/json-patch+json", **self.headers},
+                headers=patch_headers,
                 json=[{
-                    "op": "add",
+                    "op": "replace",  # Use "replace" instead of "add" for existing fields
                     "path": f"/fields/{field}",
                     "value": value
                 }],
@@ -168,6 +175,8 @@ class AzureDevOpsIntegration:
             print(f"✅ Updated work item {work_item_id}: {field} = {value}")
         except requests.exceptions.RequestException as e:
             print(f"❌ Failed to update work item: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"   Response: {e.response.text[:200]}")
     
     def mark_done(self, work_item_id: int):
         """Mark work item as Done."""
