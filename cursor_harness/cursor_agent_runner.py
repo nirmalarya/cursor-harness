@@ -96,8 +96,16 @@ async def run_autonomous_agent(
 
     # Main loop
     iteration = 0
-
-    while True:
+    session_number = 0
+    is_initializer_phase = True
+    
+    # Create MCP manager once for all sessions
+    print("\n🔧 Initializing MCP servers...")
+    mcp_manager = create_mcp_manager_from_cursor_config()
+    mcp_manager.start_all()
+    
+    try:
+        while True:
         iteration += 1
 
         # Check max iterations
