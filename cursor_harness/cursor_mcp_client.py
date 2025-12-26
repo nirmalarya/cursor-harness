@@ -64,16 +64,28 @@ class CursorMCPClient:
             "-p",  # Print mode
             "--force",  # Allow file modifications
             "--approve-mcps",  # Auto-approve MCP servers
+            "--output-format", "text",  # Text output (cleaner than stream-json)
             augmented_prompt,
         ]
         
         try:
-            # Run cursor agent
-            result = subprocess.run(
+            # Run cursor agent with real-time output streaming
+            process = subprocess.Popen(
                 cmd,
                 cwd=self.project_dir,
-                timeout=3600,  # 1 hour timeout per session
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,  # Line buffered
             )
+            
+            # Stream output in real-time
+            for line in process.stdout:
+                print(line, end='', flush=True)
+            
+            # Wait for completion
+            returncode = process.wait(timeout=3600)
+            result = type('obj', (object,), {'returncode': returncode})()
             
             if result.returncode == 0:
                 print("\n✅ Session complete")
