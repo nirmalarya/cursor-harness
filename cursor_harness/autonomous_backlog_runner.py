@@ -182,15 +182,10 @@ Get its ID and fetch full details with mcp_azure-devops_wit_get_work_item.
     fetcher_prompt = fetcher_prompt.replace("{{WORK_ITEM_ID}}", "QUERY_RESULT")
     fetcher_prompt = query_instruction + "\n" + fetcher_prompt
     
-    # Create MCP manager
-    mcp_manager = create_mcp_manager_from_cursor_config()
-    mcp_manager.start_all()
-    
-    # Create client with MCP support
+    # Create client - cursor-agent auto-loads MCPs
     client = CursorMCPClient(
         project_dir=project_dir,
-        model=model,
-        mcp_manager=mcp_manager
+        model=model
     )
     
     # Run fetcher session

@@ -99,10 +99,7 @@ async def run_autonomous_agent(
     session_number = 0
     is_initializer_phase = True
     
-    # Create MCP manager once for all sessions
-    print("\n🔧 Initializing MCP servers...")
-    mcp_manager = create_mcp_manager_from_cursor_config()
-    mcp_manager.start_all()
+    # cursor-agent handles MCPs automatically - we don't spawn them!
     
     try:
         while True:
@@ -141,11 +138,11 @@ async def run_autonomous_agent(
             # Print session header
             print_session_header(iteration, is_first_run)
 
-            # Create client (fresh context for each session, but shares MCP manager)
+            # Create client (fresh context for each session)
+            # cursor-agent auto-loads MCPs from ~/.cursor/mcp.json
             client = CursorMCPClient(
                 project_dir=project_dir,
-                model=model,
-                mcp_manager=mcp_manager
+                model=model
             )
 
             # Choose prompt based on session type and mode
@@ -190,9 +187,8 @@ async def run_autonomous_agent(
                 await asyncio.sleep(1)
     
     finally:
-        # Always cleanup MCP servers
-        print("\n🛑 Cleaning up MCP servers...")
-        mcp_manager.stop_all()
+        # cursor-agent handles MCP cleanup automatically
+        pass
     
     # Final summary
     print("\n" + "=" * 70)

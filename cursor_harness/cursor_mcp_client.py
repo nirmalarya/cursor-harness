@@ -32,7 +32,8 @@ class CursorMCPClient:
     ):
         self.project_dir = project_dir
         self.model = model
-        self.mcp_manager = mcp_manager or create_mcp_manager_from_cursor_config()
+        # Don't spawn MCPs ourselves! cursor-agent handles them automatically
+        self.mcp_manager = None
     
     async def run_session(self, prompt: str) -> Tuple[str, str]:
         """
@@ -47,29 +48,14 @@ class CursorMCPClient:
             (status, response) where status is "continue" or "error"
         """
         
-        print(f"Running Cursor agent session (with MCP support)...")
+        print(f"Running cursor-agent session...")
         print(f"  Model: {self.model}")
         print(f"  Project: {self.project_dir}")
-        print(f"  MCP Servers: {len(self.mcp_manager.servers)}")
+        print(f"  MCPs: Auto-loaded from ~/.cursor/mcp.json")
         print()
         
-        # Augment prompt with MCP availability info
-        mcp_tools_available = self._get_mcp_tools_list()
-        augmented_prompt = f"""
-{prompt}
-
----
-
-## 🔧 MCP Tools Available
-
-The following MCP tools are available for you to use:
-
-{mcp_tools_available}
-
-**Important:** These tools are managed by the harness. You can reference them in your implementation plans, and the harness will execute them.
-
----
-"""
+        # cursor-agent auto-discovers MCPs, no need to augment prompt
+        augmented_prompt = prompt
         
         # Use cursor-agent (standalone command, not subcommand!)
         # Per official docs: https://cursor.com/docs/cli/mcp
