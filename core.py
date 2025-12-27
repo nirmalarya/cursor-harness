@@ -234,7 +234,7 @@ class CursorHarness:
         return self.iteration >= 10
     
     def _execute_work_item(self, work_item: WorkItem) -> bool:
-        """Execute a work item using cursor-agent."""
+        """Execute a work item using cursor CLI or simulation."""
         
         print(f"\n📝 {work_item.title}")
         
@@ -243,33 +243,61 @@ class CursorHarness:
         prompt_file = self.state_dir / f"prompt_{work_item.id}.txt"
         prompt_file.write_text(prompt)
         
-        # Execute with cursor-agent
+        # Try cursor CLI (composer mode)
+        if self._try_cursor_composer(prompt, work_item):
+            return True
+        
+        # Fallback: Manual implementation mode
+        print(f"   ℹ️  Cursor not available - you implement manually")
+        print(f"   📄 Prompt: {prompt_file}")
+        print(f"   Press ENTER when done...")
+        input()
+        
+        # Validate
+        return self._validate_work_item(work_item)
+    
+    def _try_cursor_composer(self, prompt: str, work_item: WorkItem) -> bool:
+        """Try to use Cursor Composer."""
+        # TODO: Integrate with Cursor Composer API when available
+        return False
+    
+    def _validate_work_item(self, work_item: WorkItem) -> bool:
+        """Validate that work item was completed."""
+        
+        # Check git for changes
         try:
             result = subprocess.run(
-                [
-                    "cursor-agent",
-                    "--prompt-file", str(prompt_file),
-                    "--cwd", str(self.project_dir)
-                ],
+                ["git", "status", "--short"],
                 cwd=self.project_dir,
                 capture_output=True,
-                timeout=30 * 60,  # 30 min per work item
-                text=True
+                text=True,
+                timeout=5
             )
+            has_changes = len(result.stdout.strip()) > 0
             
-            # Save output
-            output_file = self.state_dir / f"output_{work_item.id}.txt"
-            output_file.write_text(result.stdout + "\n\n" + result.stderr)
-            
-            return result.returncode == 0
-            
-        except subprocess.TimeoutExpired:
-            print(f"   ⏰ Timeout!")
+            if has_changes:
+                # Commit changes
+                subprocess.run(
+                    ["git", "add", "-A"],
+                    cwd=self.project_dir,
+                    capture_output=True,
+                    timeout=5
+                )
+                subprocess.run(
+                    ["git", "commit", "-m", f"feat: {work_item.title}"],
+                    cwd=self.project_dir,
+                    capture_output=True,
+                    timeout=5
+                )
+                print(f"   ✅ Committed changes")
+                return True
+            else:
+                print(f"   ⚠️  No changes detected")
+                return False
+                
+        except Exception as e:
+            print(f"   ⚠️  Validation error: {e}")
             return False
-        except FileNotFoundError:
-            print(f"   ⚠️  cursor-agent not found (using simulation mode)")
-            time.sleep(1)
-            return True
     
     def _build_prompt(self, work_item: WorkItem) -> str:
         """Build prompt for cursor-agent."""
