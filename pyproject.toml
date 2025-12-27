@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cursor-harness = "cli:main"
+cursor-harness = "cursor_harness.cli:main"
 
 [project.optional-dependencies]
 dev = [

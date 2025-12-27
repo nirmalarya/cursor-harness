@@ -4,7 +4,7 @@
 import sys
 import argparse
 from pathlib import Path
-from core import CursorHarness
+from .core import CursorHarness
 
 
 def main():

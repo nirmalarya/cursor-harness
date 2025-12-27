@@ -187,7 +187,7 @@ class CursorHarness:
             )
         
         # 3. Self-healing infrastructure
-        from infra.healer import InfrastructureHealer
+        from .infra.healer import InfrastructureHealer
         healer = InfrastructureHealer(self.project_dir)
         healer.heal()
         
@@ -198,7 +198,7 @@ class CursorHarness:
     
     def _load_mode_adapter(self):
         """Load the appropriate mode adapter."""
-        from modes.greenfield import GreenfieldMode
+        from .modes.greenfield import GreenfieldMode
         
         if self.mode == "greenfield":
             self.mode_adapter = GreenfieldMode(self.project_dir)
@@ -258,7 +258,7 @@ class CursorHarness:
     def _try_claude_executor(self, prompt: str, work_item: WorkItem) -> bool:
         """Try to use Cursor executor (uses Cursor's auth!)."""
         try:
-            from executor.cursor_executor import CursorExecutor
+            from .executor.cursor_executor import CursorExecutor
             
             if not hasattr(self, '_executor'):
                 self._executor = CursorExecutor(self.project_dir)
@@ -375,8 +375,8 @@ class CursorHarness:
     def _final_validation(self) -> bool:
         """Run final validation checks."""
         
-        from validators.test_runner import TestRunner
-        from validators.secrets_scanner import SecretsScanner
+        from .validators.test_runner import TestRunner
+        from .validators.secrets_scanner import SecretsScanner
         
         all_passed = True
         
