@@ -73,6 +73,8 @@ class CursorHarness:
         
         self.start_time = time.time()
         self.iteration = 0
+        self.failure_counts = {}  # Track failures per work item
+        self.max_retries = 3
     
     def run(self) -> bool:
         """
@@ -116,10 +118,17 @@ class CursorHarness:
                 
                 if success:
                     self._mark_complete(work_item)
+                    self.failure_counts[work_item.id] = 0
                     print(f"✅ {work_item.title} - Complete!")
                 else:
-                    self._handle_failure(work_item)
-                    print(f"❌ {work_item.title} - Failed!")
+                    self.failure_counts[work_item.id] = self.failure_counts.get(work_item.id, 0) + 1
+                    
+                    if self.failure_counts[work_item.id] >= self.max_retries:
+                        print(f"❌ {work_item.title} - Failed {self.max_retries} times, skipping!")
+                        self._mark_complete(work_item)  # Skip it
+                    else:
+                        self._handle_failure(work_item)
+                        print(f"❌ {work_item.title} - Failed (retry {self.failure_counts[work_item.id]}/{self.max_retries})")
             
             # 3. Final validation
             print(f"\n{'='*60}")
