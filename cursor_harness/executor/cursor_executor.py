@@ -1,15 +1,15 @@
 """
 Cursor executor for cursor-harness v3.0.
 
-Uses Cursor's authentication (no API key needed!).
-Leverages user's Cursor subscription.
+Based on Anthropic's autonomous-coding demo pattern.
+Enhanced for multiple modes and production use.
 """
 
 import os
 import json
 import subprocess
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional
 
 try:
     from anthropic import Anthropic
@@ -18,11 +18,71 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 
+# ============================================================================
+# SYSTEM PROMPT - Based on Anthropic's demo, enhanced for production
+# ============================================================================
+
+SYSTEM_PROMPT = """You are an autonomous coding agent.
+
+## Available Tools
+
+- read_file(path) - Read file contents
+- write_file(path, content) - Create or overwrite a file
+- edit_file(path, old_str, new_str) - Replace old_str with new_str in file
+- run_command(command) - Execute shell command
+
+## Your Process
+
+1. **Understand** - Read the task requirements carefully
+2. **Test First** - Write failing tests (TDD)
+3. **Implement** - Write minimum code to pass tests
+4. **Verify** - Run tests, ensure they pass
+5. **Commit** - Commit with clear message
+6. **Complete** - Create `.work_complete` marker when done
+
+## Quality Standards
+
+- Write tests BEFORE implementation
+- Aim for 80%+ test coverage
+- No console.log/print in production code
+- No secrets or API keys in code
+- Validate all external inputs
+- Follow existing code patterns
+
+## Project Standards
+
+If project has `docs/standards/` directory, read and follow those standards.
+Otherwise, use common best practices for the language.
+
+## Commit Format
+
+```
+<type>: <description>
+
+Types: feat, fix, test, refactor, docs
+Example: feat: add user authentication
+```
+
+## Completion Signal
+
+When your work is complete:
+1. Ensure all tests pass
+2. Commit all changes
+3. Create empty file: `.work_complete`
+
+This signals the harness that you're done.
+"""
+
+
+# ============================================================================
+# Cursor Executor - Uses Cursor's auth (like Anthropic's demo uses API key)
+# ============================================================================
+
 class CursorExecutor:
     """
     Execute work items using Cursor's authentication.
     
-    Uses logged-in Cursor user's subscription - no API key needed!
+    Pattern based on Anthropic's autonomous-coding demo.
     """
     
     def __init__(self, project_dir: Path):
@@ -31,20 +91,14 @@ class CursorExecutor:
         if not ANTHROPIC_AVAILABLE:
             raise ImportError("Install: pip install anthropic")
         
-        # Use Cursor's auth (no API key!)
+        # Use Cursor's auth (no API key needed!)
         self.client = self._get_cursor_client()
         self.model = "claude-sonnet-4-20250514"
     
     def _get_cursor_client(self) -> Anthropic:
-        """
-        Get Anthropic client using Cursor's authentication.
+        """Get Anthropic client using Cursor's auth or API key."""
         
-        Tries (in order):
-        1. Cursor's stored auth token
-        2. ANTHROPIC_API_KEY env var (fallback)
-        """
-        
-        # Try Cursor's auth token first
+        # Try Cursor's stored token
         cursor_token = self._get_cursor_token()
         if cursor_token:
             print("   ✅ Using Cursor subscription")
@@ -58,22 +112,12 @@ class CursorExecutor:
         
         raise ValueError(
             "No authentication found!\n"
-            "Either:\n"
-            "1. Login to Cursor (uses your subscription)\n"
-            "2. Set ANTHROPIC_API_KEY env var"
+            "Either login to Cursor or set ANTHROPIC_API_KEY"
         )
     
     def _get_cursor_token(self) -> Optional[str]:
-        """
-        Get Cursor's stored auth token.
+        """Get Cursor's stored auth token."""
         
-        Cursor stores auth in:
-        - macOS: ~/Library/Application Support/Cursor/User/globalStorage/...
-        - Linux: ~/.config/Cursor/User/globalStorage/...
-        - Windows: %APPDATA%/Cursor/User/globalStorage/...
-        """
-        
-        # Try common Cursor config locations
         possible_paths = [
             Path.home() / "Library/Application Support/Cursor/User/globalStorage/storage.json",
             Path.home() / ".config/Cursor/User/globalStorage/storage.json",
@@ -85,8 +129,6 @@ class CursorExecutor:
                 try:
                     with open(config_path) as f:
                         config = json.load(f)
-                    
-                    # Look for Anthropic token
                     token = config.get("anthropic.apiKey") or config.get("apiKey")
                     if token:
                         return token
@@ -95,10 +137,21 @@ class CursorExecutor:
         
         return None
     
-    def execute(self, prompt: str, timeout_seconds: int = 1800) -> bool:
-        """Execute work using Cursor's auth."""
+    def execute(self, task_prompt: str) -> bool:
+        """
+        Execute a task using Claude.
         
-        messages = [{"role": "user", "content": prompt}]
+        Args:
+            task_prompt: The specific work item to implement
+        
+        Returns:
+            True if completed successfully
+        """
+        
+        # Combine system prompt + task (like Anthropic's demo)
+        full_prompt = f"{SYSTEM_PROMPT}\n\n---\n\n{task_prompt}"
+        
+        messages = [{"role": "user", "content": full_prompt}]
         
         iteration = 0
         max_iterations = 50
@@ -114,12 +167,12 @@ class CursorExecutor:
                     tools=self._get_tools()
                 )
                 
-                # Check stop reason
+                # Check if agent is done
                 if response.stop_reason == "end_turn":
-                    print(f"   ✅ Completed (iterations: {iteration})")
+                    print(f"   ✅ Completed ({iteration} iterations)")
                     return True
                 
-                # Execute tools
+                # Execute tool calls
                 if response.stop_reason == "tool_use":
                     tool_results = []
                     
@@ -132,7 +185,7 @@ class CursorExecutor:
                                 "content": result
                             })
                     
-                    # Add to conversation
+                    # Continue conversation
                     messages.append({"role": "assistant", "content": response.content})
                     messages.append({"role": "user", "content": tool_results})
                 else:
@@ -143,11 +196,11 @@ class CursorExecutor:
                 print(f"   ❌ Error: {e}")
                 return False
         
-        print(f"   ⚠️  Max iterations")
+        print(f"   ⚠️  Max iterations reached")
         return False
     
     def _get_tools(self):
-        """Get tool definitions."""
+        """Tool definitions (like Anthropic's demo)."""
         return [
             {
                 "name": "read_file",
@@ -155,14 +208,14 @@ class CursorExecutor:
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "path": {"type": "string"}
+                        "path": {"type": "string", "description": "File path"}
                     },
                     "required": ["path"]
                 }
             },
             {
                 "name": "write_file",
-                "description": "Write file",
+                "description": "Write content to file",
                 "input_schema": {
                     "type": "object",
                     "properties": {
@@ -199,7 +252,7 @@ class CursorExecutor:
         ]
     
     def _execute_tool(self, tool_use) -> str:
-        """Execute a tool."""
+        """Execute a tool call (like Anthropic's demo)."""
         
         try:
             if tool_use.name == "read_file":
@@ -225,7 +278,7 @@ class CursorExecutor:
         file_path = self.project_dir / path
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
-        return f"Wrote {len(content)} chars"
+        return f"Wrote {len(content)} chars to {path}"
     
     def _edit_file(self, path: str, old_str: str, new_str: str) -> str:
         file_path = self.project_dir / path
@@ -234,7 +287,7 @@ class CursorExecutor:
         
         content = file_path.read_text()
         if old_str not in content:
-            return f"String not found"
+            return f"String not found in {path}"
         
         new_content = content.replace(old_str, new_str, 1)
         file_path.write_text(new_content)
@@ -244,9 +297,9 @@ class CursorExecutor:
         """Run command with safety checks."""
         
         # Block dangerous commands
-        dangerous = ["rm -rf /", "sudo rm", "chmod 777", "mkfs", "dd if=/dev"]
+        dangerous = ["rm -rf /", "sudo rm", "mkfs", "dd if=/dev"]
         if any(cmd in command for cmd in dangerous):
-            return f"Blocked: {command}"
+            return f"Blocked dangerous command"
         
         try:
             result = subprocess.run(
@@ -257,7 +310,7 @@ class CursorExecutor:
                 timeout=30,
                 text=True
             )
-            return result.stdout + result.stderr
+            output = result.stdout + result.stderr
+            return output[:1000]  # Limit output
         except Exception as e:
-            return f"Failed: {e}"
-
+            return f"Command failed: {e}"
