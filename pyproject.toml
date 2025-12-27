@@ -1,0 +1,23 @@
+[project]
+name = "cursor-harness"
+version = "3.0.0"
+description = "Simple, reliable autonomous coding harness"
+authors = [{name = "Nirmalarya Podder"}]
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+
+dependencies = []
+
+[project.scripts]
+cursor-harness = "cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+

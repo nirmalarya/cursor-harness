@@ -177,7 +177,12 @@ class CursorHarness:
                 capture_output=True
             )
         
-        # 3. Load mode-specific adapter
+        # 3. Self-healing infrastructure
+        from infra.healer import InfrastructureHealer
+        healer = InfrastructureHealer(self.project_dir)
+        healer.heal()
+        
+        # 4. Load mode-specific adapter
         self._load_mode_adapter()
         
         print("✅ Setup complete\n")
@@ -319,19 +324,34 @@ class CursorHarness:
     def _final_validation(self) -> bool:
         """Run final validation checks."""
         
+        from validators.test_runner import TestRunner
+        from validators.secrets_scanner import SecretsScanner
+        
+        all_passed = True
+        
+        # 1. Tests
         print("\n1. Running tests...")
-        # TODO: Implement test execution
-        print("   ✅ Tests passed")
+        test_runner = TestRunner(self.project_dir)
+        test_result = test_runner.run_tests()
+        if test_result.passed:
+            print(f"   ✅ Tests passed")
+        else:
+            print(f"   ❌ Tests failed")
+            all_passed = False
         
-        print("\n2. Checking code quality...")
-        # TODO: Implement quality checks
-        print("   ✅ Quality checks passed")
+        # 2. Secrets
+        print("\n2. Security scan...")
+        scanner = SecretsScanner(self.project_dir)
+        secrets = scanner.scan()
+        if not secrets:
+            print(f"   ✅ No secrets exposed")
+        else:
+            print(f"   ❌ Found {len(secrets)} potential secrets!")
+            for s in secrets[:5]:
+                print(f"      {s.file}:{s.line} - {s.type}")
+            all_passed = False
         
-        print("\n3. Security scan...")
-        # TODO: Implement security scanning
-        print("   ✅ No security issues")
-        
-        return True
+        return all_passed
 
 
 def main():
