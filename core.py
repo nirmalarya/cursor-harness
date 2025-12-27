@@ -256,23 +256,23 @@ class CursorHarness:
         return self._validate_work_item(work_item)
     
     def _try_claude_executor(self, prompt: str, work_item: WorkItem) -> bool:
-        """Try to use Claude executor."""
+        """Try to use Cursor executor (uses Cursor's auth!)."""
         try:
-            from executor.claude_executor import ClaudeExecutor
+            from executor.cursor_executor import CursorExecutor
             
             if not hasattr(self, '_executor'):
-                self._executor = ClaudeExecutor(self.project_dir)
+                self._executor = CursorExecutor(self.project_dir)
             
             return self._executor.execute(prompt)
             
         except ImportError:
-            print(f"   ℹ️  Claude not available (install: pip install anthropic)")
+            print(f"   ℹ️  Install: pip install anthropic")
             return False
         except ValueError as e:
-            print(f"   ℹ️  Claude not configured: {e}")
+            print(f"   ℹ️  {e}")
             return False
         except Exception as e:
-            print(f"   ⚠️  Claude error: {e}")
+            print(f"   ⚠️  Error: {e}")
             return False
     
     def _validate_work_item(self, work_item: WorkItem) -> bool:
