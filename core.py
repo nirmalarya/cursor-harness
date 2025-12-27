@@ -234,7 +234,7 @@ class CursorHarness:
         return self.iteration >= 10
     
     def _execute_work_item(self, work_item: WorkItem) -> bool:
-        """Execute a work item using cursor CLI or simulation."""
+        """Execute a work item."""
         
         print(f"\n📝 {work_item.title}")
         
@@ -243,23 +243,37 @@ class CursorHarness:
         prompt_file = self.state_dir / f"prompt_{work_item.id}.txt"
         prompt_file.write_text(prompt)
         
-        # Try cursor CLI (composer mode)
-        if self._try_cursor_composer(prompt, work_item):
-            return True
+        # Try Claude executor
+        if self._try_claude_executor(prompt, work_item):
+            return self._validate_work_item(work_item)
         
-        # Fallback: Manual implementation mode
-        print(f"   ℹ️  Cursor not available - you implement manually")
+        # Fallback: Manual mode
+        print(f"   ℹ️  Manual mode - implement yourself")
         print(f"   📄 Prompt: {prompt_file}")
         print(f"   Press ENTER when done...")
         input()
         
-        # Validate
         return self._validate_work_item(work_item)
     
-    def _try_cursor_composer(self, prompt: str, work_item: WorkItem) -> bool:
-        """Try to use Cursor Composer."""
-        # TODO: Integrate with Cursor Composer API when available
-        return False
+    def _try_claude_executor(self, prompt: str, work_item: WorkItem) -> bool:
+        """Try to use Claude executor."""
+        try:
+            from executor.claude_executor import ClaudeExecutor
+            
+            if not hasattr(self, '_executor'):
+                self._executor = ClaudeExecutor(self.project_dir)
+            
+            return self._executor.execute(prompt)
+            
+        except ImportError:
+            print(f"   ℹ️  Claude not available (install: pip install anthropic)")
+            return False
+        except ValueError as e:
+            print(f"   ℹ️  Claude not configured: {e}")
+            return False
+        except Exception as e:
+            print(f"   ⚠️  Claude error: {e}")
+            return False
     
     def _validate_work_item(self, work_item: WorkItem) -> bool:
         """Validate that work item was completed."""
