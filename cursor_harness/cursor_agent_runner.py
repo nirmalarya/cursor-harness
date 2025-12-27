@@ -17,6 +17,7 @@ from .multi_agent_mode import MultiAgentWorkflow
 from .azure_devops_integration import AzureDevOpsIntegration
 from .project_scaffolder import ProjectScaffolder
 from .browser_cleanup import setup_browser_cleanup, kill_orphaned_browsers
+from .infrastructure_validator import InfrastructureValidator
 
 
 # Configuration
@@ -62,6 +63,21 @@ async def run_autonomous_agent(
     # Set up project structure (rules, docs, MCPs, sessions)
     scaffolder = ProjectScaffolder(project_dir)
     scaffolder.setup_project(mode=mode)
+    
+    # Validate infrastructure ONCE (critical for autonomous operation!)
+    validator = InfrastructureValidator(project_dir)
+    infra_valid, infra_message = validator.validate_once(mode=mode)
+    
+    if not infra_valid:
+        print(f"\n❌ Infrastructure validation failed!")
+        print(f"   {infra_message}")
+        print(f"\n🔧 Fix the issues above, then run cursor-harness again.")
+        return
+    
+    print(f"   ✅ {infra_message}\n")
+    
+    # Set up browser cleanup
+    setup_browser_cleanup()
 
     # Initialize security validator
     security_validator = SecurityValidator()
