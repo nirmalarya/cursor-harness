@@ -75,6 +75,9 @@ class CursorHarness:
         self.iteration = 0
         self.failure_counts = {}  # Track failures per work item
         self.max_retries = 3
+        
+        # Track if this is first session (initializer) or coding session
+        self.is_first_session = not (self.project_dir / "feature_list.json").exists()
     
     def run(self) -> bool:
         """
@@ -313,32 +316,28 @@ class CursorHarness:
             print(f"   ⚠️  Validation error: {e}")
             return False
     
-    def _build_prompt(self, work_item: WorkItem) -> str:
-        """Build prompt for cursor-agent."""
+    def _build_prompt(self, work_item: WorkItem = None) -> str:
+        """
+        Build prompt based on Anthropic's two-prompt pattern.
         
-        prompt_parts = []
+        Returns:
+            Initializer prompt (first session) or Coding prompt (subsequent)
+        """
+        from .prompts import get_prompt
         
-        # Work item details
-        prompt_parts.append(f"# Task: {work_item.title}\n")
-        prompt_parts.append(f"\n## Description\n{work_item.description}\n")
-        
-        if work_item.acceptance_criteria:
-            prompt_parts.append(f"\n## Acceptance Criteria\n{work_item.acceptance_criteria}\n")
-        
-        # Project context (if spec exists)
-        if self.spec_file and self.spec_file.exists():
-            spec_content = self.spec_file.read_text()
-            prompt_parts.append(f"\n## Project Specification\n{spec_content}\n")
-        
-        # Instructions
-        prompt_parts.append("\n## Instructions\n")
-        prompt_parts.append("Implement this feature following best practices:\n")
-        prompt_parts.append("1. Write tests first (TDD)\n")
-        prompt_parts.append("2. Implement the feature\n")
-        prompt_parts.append("3. Ensure all tests pass\n")
-        prompt_parts.append("4. Commit your changes\n")
-        
-        return "".join(prompt_parts)
+        if self.is_first_session:
+            # INITIALIZER session
+            prompt_parts = [get_prompt('initializer')]
+            
+            # Add project spec
+            if self.spec_file and self.spec_file.exists():
+                spec_content = self.spec_file.read_text()
+                prompt_parts.append(f"\n\n## Project Specification\n\n{spec_content}")
+            
+            return "\n".join(prompt_parts)
+        else:
+            # CODING session
+            return get_prompt('coding')
     
     def _mark_complete(self, work_item: WorkItem):
         """Mark work item as complete."""
