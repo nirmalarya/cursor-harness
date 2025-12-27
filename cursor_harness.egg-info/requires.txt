@@ -1,0 +1,4 @@
+anthropic>=0.39.0
+
+[dev]
+pytest>=7.0.0

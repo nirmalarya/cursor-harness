@@ -1,0 +1,132 @@
+Metadata-Version: 2.4
+Name: cursor-harness
+Version: 3.0.0
+Summary: Simple, reliable autonomous coding harness
+Author: Nirmalarya Podder
+License: MIT
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: anthropic>=0.39.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Dynamic: requires-python
+
+# cursor-harness v3.0
+
+**Simple, Reliable, Production-Ready Autonomous Coding**
+
+## Vision
+
+Build on Anthropic's autonomous-coding demo, but for **real production work**:
+
+- ✅ **Greenfield** - New projects from scratch
+- ✅ **Enhancement** - Adding features to existing apps
+- ✅ **Bugfix** - Fixing issues in brownfield codebases
+- ✅ **Backlog** - Processing Azure DevOps work items
+
+## Core Principles
+
+### 1. Simple Core (Like Anthropic)
+```python
+while not complete:
+    work = get_next_work()
+    execute(work)
+    validate(work)
+```
+
+### 2. Powerful Features (Beyond Anthropic)
+- Self-healing infrastructure
+- Real E2E validation (Puppeteer)
+- Brownfield support (existing codebases)
+- Security scanning (secrets, vulnerabilities)
+
+### 3. Reliability First
+- Test each feature
+- Simple before complex
+- Working before optimizing
+
+## Architecture
+
+```
+cursor-harness-v3/
+├── core.py              # Main loop (~300 lines, inspired by Anthropic)
+├── modes/               # Different work sources
+│   ├── greenfield.py    # feature_list.json
+│   ├── enhancement.py   # Bugfix mode
+│   └── backlog.py       # Azure DevOps
+├── validators/          # Real validation
+│   ├── e2e_tester.py    # Puppeteer integration
+│   ├── secrets.py       # Pre-commit scanning
+│   └── quality.py       # Coverage, linting
+├── infra/               # Self-healing
+│   ├── healer.py        # Auto-fix Docker/DB
+│   └── loop_detect.py   # Prevent stalling
+└── cli.py               # Simple interface
+```
+
+**Total: ~2000 lines** (not 10,000+!)
+
+## Development Plan
+
+### Week 1: Core (Days 1-3)
+- **Day 1:** Simple loop + feature_list.json
+- **Day 2:** All modes (greenfield, enhancement, backlog)
+- **Day 3:** Infrastructure self-healing
+
+### Week 2: Validation (Days 4-7)
+- **Day 4:** Puppeteer E2E testing
+- **Day 5:** Security scanning
+- **Day 6:** Quality gates
+- **Day 7:** Integration testing (Togglr, AutoGraph, AI Trading)
+
+### Week 3: Production (Days 8-10)
+- **Day 8:** Multi-agent (optional feature)
+- **Day 9:** Documentation
+- **Day 10:** Hardening & week-long test
+
+## Why v3.0?
+
+### v1.0 (autonomous-harness)
+- ✅ Works great for greenfield
+- ❌ No brownfield support
+- ❌ No E2E testing
+- ❌ Missed CSS errors, exposed secrets
+
+### v2.x (cursor-harness)
+- ✅ Multi-agent workflow
+- ✅ Azure DevOps integration
+- ❌ Over-engineered (10K+ lines)
+- ❌ Slow, loops, unreliable
+
+### v3.0 (this!)
+- ✅ Simple core (Anthropic's pattern)
+- ✅ All modes (greenfield → backlog)
+- ✅ Real validation (E2E, security)
+- ✅ Production-ready
+
+## Usage
+
+```bash
+# Greenfield
+cursor-harness greenfield ./my-app --spec app_spec.txt
+
+# Enhancement
+cursor-harness enhance ./existing-app --feature "Add dark mode"
+
+# Bugfix
+cursor-harness bugfix ./existing-app --issue "Fix login bug"
+
+# Backlog (Azure DevOps)
+cursor-harness backlog ./project --org MyOrg --project MyProject
+```
+
+## Status
+
+**Current:** Day 1 - Building simple core
+
+**Next:** Test on simple project, then add modes
+
+---
+
+**Built to solve real production problems, not just demos!** 🚀
+
