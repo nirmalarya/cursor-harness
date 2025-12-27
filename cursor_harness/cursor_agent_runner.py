@@ -16,6 +16,7 @@ from .security import SecurityValidator
 from .multi_agent_mode import MultiAgentWorkflow
 from .azure_devops_integration import AzureDevOpsIntegration
 from .project_scaffolder import ProjectScaffolder
+from .browser_cleanup import setup_browser_cleanup, kill_orphaned_browsers
 
 
 # Configuration
