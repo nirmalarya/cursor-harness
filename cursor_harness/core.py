@@ -346,13 +346,18 @@ class CursorHarness:
             else:  # greenfield
                 prompt_file = prompts_dir / "initializer.md"
         else:
-            # CODING prompts
+            # CODING prompts - use continuation mode for large projects
             if self.mode == "enhancement" or self.mode == "enhance":
-                prompt_file = prompts_dir / "enhancement_coding.md"
+                if self.is_continuation:
+                    prompt_file = prompts_dir / "enhancement_continuation.md"
+                else:
+                    prompt_file = prompts_dir / "enhancement_coding.md"
             elif self.mode == "backlog":
-                prompt_file = prompts_dir / "backlog_coding.md"
+                if self.is_continuation:
+                    prompt_file = prompts_dir / "backlog_continuation.md"
+                else:
+                    prompt_file = prompts_dir / "backlog_coding.md"
             else:  # greenfield
-                # Use continuation mode for large projects
                 if self.is_continuation:
                     prompt_file = prompts_dir / "continuation_coding.md"
                 else:

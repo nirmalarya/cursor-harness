@@ -6,6 +6,7 @@ setup.py
 cursor_harness/__init__.py
 cursor_harness/cli.py
 cursor_harness/core.py
+cursor_harness/hooks.py
 cursor_harness/loop_detector.py
 cursor_harness.egg-info/PKG-INFO
 cursor_harness.egg-info/SOURCES.txt
