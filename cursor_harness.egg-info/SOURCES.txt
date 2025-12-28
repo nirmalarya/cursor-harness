@@ -16,10 +16,6 @@ cursor_harness/executor/__init__.py
 cursor_harness/executor/cursor_executor.py
 cursor_harness/infra/__init__.py
 cursor_harness/infra/healer.py
-cursor_harness/modes/__init__.py
-cursor_harness/modes/backlog.py
-cursor_harness/modes/enhancement.py
-cursor_harness/modes/greenfield.py
 cursor_harness/validators/__init__.py
 cursor_harness/validators/secrets_scanner.py
 cursor_harness/validators/test_runner.py

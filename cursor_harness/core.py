@@ -181,9 +181,9 @@ class CursorHarness:
             else:
                 raise ValueError(f"Project directory does not exist: {self.project_dir}")
         
-        # 2. Initialize git if needed
+        # 2. Initialize git if needed (greenfield only)
         git_dir = self.project_dir / ".git"
-        if not git_dir.exists():
+        if not git_dir.exists() and self.mode == "greenfield":
             print(f"   Initializing git...")
             subprocess.run(
                 ["git", "init"],
@@ -202,19 +202,36 @@ class CursorHarness:
                 capture_output=True
             )
         
-        # 3. Self-healing infrastructure
-        from .infra.healer import InfrastructureHealer
-        healer = InfrastructureHealer(self.project_dir)
-        healer.heal()
+        # 3. Self-healing infrastructure (brownfield modes)
+        if self.mode in ["enhancement", "enhance", "backlog"]:
+            from .infra.healer import InfrastructureHealer
+            healer = InfrastructureHealer(self.project_dir)
+            healer.heal()
         
-        # 4. Load mode-specific adapter
-        self._load_mode_adapter()
+        # 4. Backlog mode: Prepare Azure DevOps state
+        if self.mode == "backlog":
+            self._setup_backlog_mode()
         
         print("✅ Setup complete\n")
     
-    def _load_mode_adapter(self):
-        """Mode adapters not needed - agent reads feature_list.json directly."""
-        print(f"   Mode: {self.mode}")
+    def _setup_backlog_mode(self):
+        """Setup for backlog mode - create backlog state for agent."""
+        print(f"   Setting up Azure DevOps backlog...")
+        
+        # Agent will use MCP to fetch PBIs
+        # We just create the state file location
+        from .integrations.azure_devops import AzureDevOpsIntegration
+        
+        # Parse org/project from CLI args (already set elsewhere)
+        org = getattr(self, 'ado_org', 'unknown')
+        project = getattr(self, 'ado_project', 'unknown')
+        
+        ado = AzureDevOpsIntegration(org, project, self.project_dir)
+        
+        # Save empty state - agent will populate using MCP
+        ado.save_backlog_state([])
+        
+        print(f"   Backlog state file created")
     
     
     def _is_complete(self) -> bool:
@@ -319,6 +336,10 @@ class CursorHarness:
                 prompt_file = prompts_dir / "coding.md"
         
         prompt = prompt_file.read_text()
+        
+        # Add system instructions (common to all)
+        system_instructions = (prompts_dir / "system_instructions.md").read_text()
+        prompt = f"{prompt}\n\n---\n\n{system_instructions}"
         
         # Add project spec for initializer
         if self.is_first_session and self.spec_file and self.spec_file.exists():

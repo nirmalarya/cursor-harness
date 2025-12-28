@@ -47,6 +47,11 @@ def main():
         timeout_minutes=args.timeout
     )
     
+    # Pass Azure DevOps info for backlog mode
+    if args.mode == 'backlog':
+        harness.ado_org = args.org
+        harness.ado_project = args.project
+    
     # Run
     success = harness.run()
     sys.exit(0 if success else 1)
