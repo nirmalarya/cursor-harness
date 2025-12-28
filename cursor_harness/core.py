@@ -287,20 +287,16 @@ class CursorHarness:
             print(f"   Or set ANTHROPIC_API_KEY environment variable")
             return False
         except ValueError as e:
-            # No auth available - show prompt for manual implementation
-            print(f"\n   ℹ️  {e}")
-            print(f"\n{'='*60}")
-            print(f"PROMPT FOR MANUAL IMPLEMENTATION ({session_type.upper()}):")
-            print(f"{'='*60}\n")
-            print(prompt[:500])
-            print("\n... (see full prompt in .cursor/)")
-            
-            prompt_file = self.state_dir / f"{session_type}_prompt.txt"
-            prompt_file.write_text(prompt)
-            print(f"\nFull prompt: {prompt_file}")
-            print("\nImplement manually, then press ENTER...")
-            input()
-            return True
+            # No auth available
+            print(f"\n❌ {e}")
+            print(f"\nTo use cursor-harness, either:")
+            print(f"1. Login to Cursor IDE")
+            print(f"2. Set ANTHROPIC_API_KEY environment variable")
+            print(f"\nFor now, using v2.5.0 instead:")
+            print(f"   cd /Users/nirmalarya/Workspace/cursor-harness")
+            print(f"   git checkout v2.5.0")
+            print(f"   pipx install -e . --force")
+            return False
         except Exception as e:
             print(f"   ⚠️  Error: {e}")
             return False
