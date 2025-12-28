@@ -157,6 +157,8 @@ class CursorHarness:
                 success = self._run_coding_session()
                 
                 if success:
+                    # Run onStop hooks
+                    self.hooks_manager.run_hook('onStop')
                     print(f"✅ Session {session} complete")
                 else:
                     print(f"⚠️  Session {session} made no progress")
@@ -225,7 +227,13 @@ class CursorHarness:
             healer = InfrastructureHealer(self.project_dir)
             healer.heal()
         
-        # 4. Backlog mode: Prepare Azure DevOps state
+        # 4. Setup hooks (automatic validation!)
+        from .hooks import HooksManager
+        hooks_manager = HooksManager(self.project_dir)
+        hooks_manager.setup_default_hooks()
+        self.hooks_manager = hooks_manager
+        
+        # 5. Backlog mode: Prepare Azure DevOps state
         if self.mode == "backlog":
             self._setup_backlog_mode()
         
