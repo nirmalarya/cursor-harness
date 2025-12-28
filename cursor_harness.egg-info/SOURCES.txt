@@ -16,7 +16,10 @@ cursor_harness/executor/__init__.py
 cursor_harness/executor/cursor_executor.py
 cursor_harness/infra/__init__.py
 cursor_harness/infra/healer.py
+cursor_harness/integrations/__init__.py
+cursor_harness/integrations/azure_devops.py
 cursor_harness/validators/__init__.py
+cursor_harness/validators/e2e_tester.py
 cursor_harness/validators/secrets_scanner.py
 cursor_harness/validators/test_runner.py
 tests/test_simple.py
