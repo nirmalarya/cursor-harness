@@ -151,6 +151,11 @@ class CursorExecutor:
                     return True
                 else:
                     print(f"\n   ⚠️  Session exited with code {returncode}")
+                    # Read stderr to see what went wrong
+                    stderr = process.stderr.read()
+                    if stderr:
+                        print(f"\n   ERROR OUTPUT:")
+                        print(f"   {stderr[:500]}")
                     return False
                     
             except subprocess.TimeoutExpired:
