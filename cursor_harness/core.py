@@ -60,12 +60,14 @@ class CursorHarness:
         project_dir: Path,
         mode: str,
         spec_file: Optional[Path] = None,
-        timeout_minutes: int = 60
+        timeout_minutes: int = 60,
+        model: str = "claude-sonnet-4"
     ):
         self.project_dir = Path(project_dir).resolve()
         self.mode = mode  # greenfield, enhancement, bugfix, backlog
         self.spec_file = spec_file
         self.timeout = timeout_minutes * 60
+        self.model = model
         
         # State
         self.state_dir = self.project_dir / ".cursor"
@@ -205,8 +207,8 @@ class CursorHarness:
         # 3. Self-healing infrastructure (brownfield modes)
         if self.mode in ["enhancement", "enhance", "backlog"]:
             from .infra.healer import InfrastructureHealer
-            healer = InfrastructureHealer(self.project_dir)
-            healer.heal()
+        healer = InfrastructureHealer(self.project_dir)
+        healer.heal()
         
         print(f"   Mode: {self.mode}")
         
@@ -284,7 +286,7 @@ class CursorHarness:
             loop_detector = LoopDetector(max_repeated_reads=5, session_timeout_minutes=60)
             
             if not hasattr(self, '_executor'):
-                self._executor = CursorExecutor(self.project_dir, loop_detector)
+                self._executor = CursorExecutor(self.project_dir, loop_detector, self.model)
             
             return self._executor.execute(prompt)
             

@@ -14,9 +14,10 @@ from pathlib import Path
 class CursorExecutor:
     """Execute sessions using cursor-agent CLI."""
     
-    def __init__(self, project_dir: Path, loop_detector=None):
+    def __init__(self, project_dir: Path, loop_detector=None, model: str = "claude-sonnet-4"):
         self.project_dir = project_dir
         self.loop_detector = loop_detector
+        self.model = model
         
         # Verify cursor-agent exists
         try:
@@ -52,6 +53,7 @@ class CursorExecutor:
                     "cursor-agent",
                     "-p",
                     "--force",
+                    "--model", self.model,
                     "--output-format", "stream-json",
                     "--stream-partial-output"
                 ],
