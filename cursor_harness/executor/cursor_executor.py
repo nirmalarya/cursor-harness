@@ -41,21 +41,30 @@ class CursorExecutor:
         try:
             print(f"   🚀 Starting cursor-agent session...")
             
+            # Read prompt from file
+            with open(prompt_file, 'r') as pf:
+                prompt_text = pf.read()
+            
             # Start cursor-agent process
+            # Pass prompt via stdin to avoid argument length limits
             process = subprocess.Popen(
                 [
                     "cursor-agent",
                     "-p",
                     "--force",
                     "--output-format", "stream-json",
-                    "--stream-partial-output",
-                    "--file", prompt_file
+                    "--stream-partial-output"
                 ],
                 cwd=self.project_dir,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
             )
+            
+            # Write prompt to stdin
+            process.stdin.write(prompt_text)
+            process.stdin.close()
             
             # Stream and parse output
             tool_count = 0
