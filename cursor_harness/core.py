@@ -75,7 +75,7 @@ class CursorHarness:
         self.iteration = 0
         self.failure_counts = {}  # Track failures per work item
         self.max_retries = 3
-        
+    
         # Track if this is first session (initializer) or coding session
         self.is_first_session = not (self.project_dir / "feature_list.json").exists()
     
@@ -205,8 +205,8 @@ class CursorHarness:
         # 3. Self-healing infrastructure (brownfield modes)
         if self.mode in ["enhancement", "enhance", "backlog"]:
             from .infra.healer import InfrastructureHealer
-            healer = InfrastructureHealer(self.project_dir)
-            healer.heal()
+        healer = InfrastructureHealer(self.project_dir)
+        healer.heal()
         
         # 4. Backlog mode: Prepare Azure DevOps state
         if self.mode == "backlog":
@@ -276,9 +276,13 @@ class CursorHarness:
         
         try:
             from .executor.cursor_executor import CursorExecutor
+            from .loop_detector import LoopDetector
+            
+            # Create loop detector for this session
+            loop_detector = LoopDetector(max_repeated_reads=5, session_timeout_minutes=60)
             
             if not hasattr(self, '_executor'):
-                self._executor = CursorExecutor(self.project_dir)
+                self._executor = CursorExecutor(self.project_dir, loop_detector)
             
             return self._executor.execute(prompt)
             

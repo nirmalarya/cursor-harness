@@ -23,8 +23,9 @@ class CursorExecutor:
     cursor-agent uses Cursor's logged-in auth automatically - no API key needed!
     """
     
-    def __init__(self, project_dir: Path):
+    def __init__(self, project_dir: Path, loop_detector=None):
         self.project_dir = project_dir
+        self.loop_detector = loop_detector
         
         # Check if cursor-agent is available
         try:
@@ -125,15 +126,30 @@ class CursorExecutor:
                             if 'writeToolCall' in tool_call:
                                 path = tool_call['writeToolCall'].get('args', {}).get('path', 'unknown')
                                 print(f"\n   🔧 Tool #{tool_count}: Writing {path}")
+                                if self.loop_detector:
+                                    self.loop_detector.track_tool('write', path)
                             elif 'readToolCall' in tool_call:
                                 path = tool_call['readToolCall'].get('args', {}).get('path', 'unknown')
                                 print(f"\n   📖 Tool #{tool_count}: Reading {path}")
+                                if self.loop_detector:
+                                    self.loop_detector.track_tool('read', path)
+                                    # Check for loops
+                                    is_stuck, reason = self.loop_detector.check()
+                                    if is_stuck:
+                                        print(f"\n   ⚠️  LOOP DETECTED: {reason}")
+                                        print(f"   Stopping session...")
+                                        process.kill()
+                return False
                             elif 'editToolCall' in tool_call:
                                 path = tool_call['editToolCall'].get('args', {}).get('path', 'unknown')
                                 print(f"\n   ✏️  Tool #{tool_count}: Editing {path}")
+                                if self.loop_detector:
+                                    self.loop_detector.track_tool('edit', path)
                             elif 'bashToolCall' in tool_call:
                                 cmd = tool_call['bashToolCall'].get('args', {}).get('command', 'unknown')
                                 print(f"\n   💻 Tool #{tool_count}: Running {cmd[:50]}")
+                                if self.loop_detector:
+                                    self.loop_detector.track_tool('bash')
                         
                         elif subtype == 'completed':
                             tool_call = event.get('tool_call', {})
