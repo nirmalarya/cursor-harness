@@ -225,29 +225,27 @@ class CursorHarness:
             self.mode_adapter = None
             print(f"   Mode: {self.mode} (not implemented yet)")
     
-    def _get_next_work(self) -> Optional[WorkItem]:
-        """Get next work item based on mode."""
-        
-        if self.mode == "greenfield" and self.mode_adapter:
-            feature = self.mode_adapter.get_next_feature()
-            if feature:
-                return WorkItem(
-                    id=feature.id,
-                    title=feature.title,
-                    description=feature.description,
-                    type="feature"
-                )
-        
-        return None
     
     def _is_complete(self) -> bool:
-        """Check if all work is complete."""
+        """Check if all features are complete (Anthropic's pattern)."""
         
-        if self.mode == "greenfield" and self.mode_adapter:
-            return self.mode_adapter.is_complete()
+        # Check feature_list.json
+        feature_list = self.project_dir / "feature_list.json"
+        if not feature_list.exists():
+            return False
         
-        # For other modes, use iteration limit for now
-        return self.iteration >= 10
+        try:
+            import json
+            with open(feature_list) as f:
+                features = json.load(f)
+            
+            if not features:
+                return True
+            
+            # All features must be passing
+            return all(f.get('passes', False) for f in features)
+        except:
+            return False
     
     def _run_initializer_session(self) -> bool:
         """Run the initializer session (Anthropic's pattern)."""
@@ -277,52 +275,28 @@ class CursorHarness:
             return self._executor.execute(prompt)
             
         except ImportError:
-            print(f"   ℹ️  Install: pip install anthropic")
+            print(f"\n   ℹ️  Install anthropic: pip install anthropic")
+            print(f"   Or set ANTHROPIC_API_KEY environment variable")
             return False
         except ValueError as e:
-            print(f"   ℹ️  {e}")
-            return False
+            # No auth available - show prompt for manual implementation
+            print(f"\n   ℹ️  {e}")
+            print(f"\n{'='*60}")
+            print(f"PROMPT FOR MANUAL IMPLEMENTATION ({session_type.upper()}):")
+            print(f"{'='*60}\n")
+            print(prompt[:500])
+            print("\n... (see full prompt in .cursor/)")
+            
+            prompt_file = self.state_dir / f"{session_type}_prompt.txt"
+            prompt_file.write_text(prompt)
+            print(f"\nFull prompt: {prompt_file}")
+            print("\nImplement manually, then press ENTER...")
+            input()
+            return True
         except Exception as e:
             print(f"   ⚠️  Error: {e}")
             return False
     
-    def _validate_work_item(self, work_item: WorkItem) -> bool:
-        """Validate that work item was completed."""
-        
-        # Check git for changes
-        try:
-            result = subprocess.run(
-                ["git", "status", "--short"],
-                cwd=self.project_dir,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            has_changes = len(result.stdout.strip()) > 0
-            
-            if has_changes:
-                # Commit changes
-                subprocess.run(
-                    ["git", "add", "-A"],
-                    cwd=self.project_dir,
-                    capture_output=True,
-                    timeout=5
-                )
-                subprocess.run(
-                    ["git", "commit", "-m", f"feat: {work_item.title}"],
-                    cwd=self.project_dir,
-                    capture_output=True,
-                    timeout=5
-                )
-                print(f"   ✅ Committed changes")
-                return True
-            else:
-                print(f"   ⚠️  No changes detected")
-                return False
-                
-        except Exception as e:
-            print(f"   ⚠️  Validation error: {e}")
-            return False
     
     def _build_prompt(self, work_item: WorkItem = None) -> str:
         """
@@ -349,37 +323,6 @@ class CursorHarness:
             # CODING session
             return (prompts_dir / "coding.md").read_text()
     
-    def _mark_complete(self, work_item: WorkItem):
-        """Mark work item as complete."""
-        
-        # Update mode adapter
-        if self.mode == "greenfield" and self.mode_adapter:
-            self.mode_adapter.mark_passing(work_item.id)
-        
-        # Save completion record
-        completion_file = self.state_dir / f"completed_{work_item.id}.json"
-        completion_file.write_text(json.dumps({
-            "id": work_item.id,
-            "title": work_item.title,
-            "completed_at": datetime.now().isoformat(),
-            "iteration": self.iteration
-        }, indent=2))
-    
-    def _handle_failure(self, work_item: WorkItem):
-        """Handle work item failure."""
-        
-        # Update mode adapter
-        if self.mode == "greenfield" and self.mode_adapter:
-            self.mode_adapter.mark_failing(work_item.id)
-        
-        # Save failure record
-        failure_file = self.state_dir / f"failed_{work_item.id}.json"
-        failure_file.write_text(json.dumps({
-            "id": work_item.id,
-            "title": work_item.title,
-            "failed_at": datetime.now().isoformat(),
-            "iteration": self.iteration
-        }, indent=2))
     
     def _final_validation(self) -> bool:
         """Run final validation checks."""
