@@ -34,6 +34,10 @@ class CursorExecutor:
     def execute(self, prompt: str, timeout_seconds: int = 3600) -> bool:
         """Execute a session using cursor-agent."""
 
+        # Reset loop detector for new session (prevents cross-session accumulation)
+        if self.loop_detector:
+            self.loop_detector.reset()
+
         # Write prompt to temp file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
             f.write(prompt)

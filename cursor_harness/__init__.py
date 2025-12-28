@@ -10,5 +10,5 @@ Usage:
     cursor-harness backlog ./project --org MyOrg --project MyProject
 """
 
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 
