@@ -49,7 +49,7 @@ class CursorExecutor:
                     "--force",
                     "--output-format", "stream-json",
                     "--stream-partial-output",
-                    prompt
+                    "--file", prompt_file
                 ],
                 cwd=self.project_dir,
                 stdout=subprocess.PIPE,
