@@ -105,15 +105,32 @@ Follow TDD (Test-Driven Development):
 - Check for visual bugs
 - Verify no console errors
 
+**Save screenshots to prove E2E testing (REQUIRED):**
+```bash
+mkdir -p .cursor/verification
+# Save Puppeteer screenshots to .cursor/verification/
+# Name format: feature-001-step-1.png, feature-001-step-2.png, etc.
+# This proves E2E testing was performed
+```
+
 ## Step 7: Verify End-to-End
+
+**FIRST: Run regression tests (check existing functionality still works):**
+- Re-run 1-2 previously passing features
+- Check for visual regressions (contrast, layout, overflow)
+- Verify no console errors were introduced
+- Ensure existing features still work after your changes
+
+**THEN: Verify new feature completely:**
 
 The feature must work COMPLETELY before marking as passing:
 
 - ✅ All test steps from feature_list.json pass
 - ✅ Manual testing as a real user confirms it works
-- ✅ No visual bugs
+- ✅ No visual bugs (contrast, layout, colors)
 - ✅ No console errors
 - ✅ Feature integrates properly with rest of app
+- ✅ Screenshots saved to .cursor/verification/
 
 **Do not mark a feature as passing unless it truly works end-to-end.**
 

@@ -1,6 +1,6 @@
 [project]
 name = "cursor-harness"
-version = "3.0.3"
+version = "3.0.4"
 description = "Simple, reliable autonomous coding harness"
 authors = [{name = "Nirmalarya Podder"}]
 readme = "README.md"

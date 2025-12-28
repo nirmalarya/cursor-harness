@@ -69,18 +69,39 @@ Now you have just ONE feature to implement.
 
 ## Step 4: Implement ONLY This Feature
 
+**FIRST: Run regression tests (1-2 passing features):**
+```bash
+# Verify existing functionality still works
+# Use Puppeteer MCP to test 1-2 passing features
+# Check for visual regressions (contrast, layout, overflow)
+# Verify no console errors introduced
+```
+
+**THEN: Implement this feature:**
+
 1. Write tests for THIS feature
 2. Implement THIS feature
-3. Test THIS feature
-4. Commit changes
+3. Test THIS feature with browser automation
+4. Save screenshots to .cursor/verification/
+5. Commit changes
+
+**Save E2E screenshots (REQUIRED):**
+```bash
+mkdir -p .cursor/verification
+# Save Puppeteer screenshots proving E2E testing was done
+# Name format: feature-NNN-step-1.png, feature-NNN-step-2.png
+```
 
 **Do NOT:**
 - ❌ Read entire feature_list.json
 - ❌ Read other features
 - ❌ Try to analyze whole project
+- ❌ Skip E2E testing (screenshots required!)
 
 **DO:**
 - ✅ Implement just THIS feature
+- ✅ Test with browser automation
+- ✅ Save screenshots to .cursor/verification/
 - ✅ Commit when done
 - ✅ Mark complete (step below)
 

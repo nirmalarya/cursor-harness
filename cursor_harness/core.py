@@ -282,24 +282,51 @@ class CursorHarness:
     
     def _is_complete(self) -> bool:
         """Check if all features are complete (Anthropic's pattern)."""
-        
+
         # Check feature_list.json
         feature_list = self.project_dir / "feature_list.json"
         if not feature_list.exists():
             return False
-        
+
         try:
             import json
             with open(feature_list) as f:
                 features = json.load(f)
-            
+
             if not features:
                 return True
-            
+
             # All features must be passing
             return all(f.get('passes', False) for f in features)
         except:
             return False
+
+    def _get_current_work_item(self) -> dict:
+        """
+        Get the work item being implemented this session.
+
+        Returns the first non-passing feature from feature_list.json.
+        This is what the agent should be working on.
+
+        Used for E2E verification.
+        """
+        feature_list = self.project_dir / "feature_list.json"
+        if not feature_list.exists():
+            return None
+
+        try:
+            import json
+            with open(feature_list) as f:
+                features = json.load(f)
+
+            # Find first non-passing feature
+            for feature in features:
+                if not feature.get('passes', False):
+                    return feature
+        except:
+            pass
+
+        return None
     
     def _run_initializer_session(self) -> bool:
         """Run the initializer session (Anthropic's pattern)."""
@@ -310,12 +337,35 @@ class CursorHarness:
         return self._execute_session(prompt, "initializer")
     
     def _run_coding_session(self) -> bool:
-        """Run a coding session (Anthropic's pattern)."""
-        
+        """Run a coding session (Anthropic's pattern + E2E verification)."""
+
+        # Get current work item for E2E verification
+        work_item = self._get_current_work_item()
+
+        # Build and execute prompt
         prompt = self._build_prompt()
-        
-        # Execute with Claude
-        return self._execute_session(prompt, "coding")
+        success = self._execute_session(prompt, "coding")
+
+        if not success:
+            return False
+
+        # Production enhancement: Verify E2E testing was done
+        # Only for user-facing modes (greenfield, enhancement)
+        if self.mode in ['greenfield', 'enhancement'] and work_item:
+            from .validators.e2e_verifier import E2EVerifier
+            verifier = E2EVerifier(self.project_dir)
+
+            result = verifier.verify(work_item)
+
+            if not result.passed:
+                print(f"\n   ⚠️  E2E Verification Failed: {result.reason}")
+                print(f"   💡 Tip: Agent must save Puppeteer screenshots to .cursor/verification/")
+                print(f"   💡 See prompts for E2E testing requirements")
+                return False
+            else:
+                print(f"   ✅ E2E verified: {result.reason}")
+
+        return True
     
     def _execute_session(self, prompt: str, session_type: str) -> bool:
         """Execute a session using Cursor's Claude."""
