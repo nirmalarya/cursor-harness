@@ -1,260 +1,172 @@
 """
 Cursor executor for cursor-harness v3.0.
 
-Based on Anthropic's autonomous-coding demo pattern.
-Enhanced for multiple modes and production use.
+Uses cursor-agent CLI which automatically uses Cursor's login.
+No API key needed!
+
+Reference: https://cursor.com/docs/cli/using
 """
 
-import os
-import json
 import subprocess
+import tempfile
 from pathlib import Path
-from typing import Optional
 
-try:
-    from anthropic import Anthropic
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
-
-
-
-
-# ============================================================================
-# Cursor Executor - Uses Cursor's auth (like Anthropic's demo uses API key)
-# ============================================================================
 
 class CursorExecutor:
     """
-    Execute work items using Cursor's authentication.
+    Execute sessions using cursor-agent CLI.
     
-    Pattern based on Anthropic's autonomous-coding demo.
+    cursor-agent uses Cursor's logged-in auth automatically - no API key needed!
     """
     
     def __init__(self, project_dir: Path):
         self.project_dir = project_dir
         
-        if not ANTHROPIC_AVAILABLE:
-            raise ImportError("Install: pip install anthropic")
-        
-        # Use Cursor's auth (no API key needed!)
-        self.client = self._get_cursor_client()
-        self.model = "claude-sonnet-4-20250514"
+        # Check if cursor-agent is available
+        try:
+            subprocess.run(
+                ["cursor-agent", "--version"],
+                capture_output=True,
+                timeout=5,
+                check=True
+            )
+            print("   ✅ cursor-agent found")
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            raise ValueError(
+                "cursor-agent not found!\n"
+                "Install: curl https://cursor.com/install -fsS | bash\n"
+                "Then login to Cursor IDE"
+            )
     
-    def _get_cursor_client(self) -> Anthropic:
-        """Get Anthropic client using Cursor's auth or API key."""
-        
-        # Try Cursor's stored token
-        cursor_token = self._get_cursor_token()
-        if cursor_token:
-            print("   ✅ Using Cursor subscription")
-            return Anthropic(api_key=cursor_token)
-        
-        # Fallback to API key
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if api_key:
-            print("   ✅ Using ANTHROPIC_API_KEY")
-            return Anthropic(api_key=api_key)
-        
-        raise ValueError(
-            "No authentication found!\n"
-            "Either login to Cursor or set ANTHROPIC_API_KEY"
-        )
-    
-    def _get_cursor_token(self) -> Optional[str]:
-        """Get Cursor's stored auth token."""
-        
-        possible_paths = [
-            Path.home() / "Library/Application Support/Cursor/User/globalStorage/storage.json",
-            Path.home() / ".config/Cursor/User/globalStorage/storage.json",
-            Path(os.getenv("APPDATA", "")) / "Cursor/User/globalStorage/storage.json",
-        ]
-        
-        for config_path in possible_paths:
-            if config_path.exists():
-                try:
-                    with open(config_path) as f:
-                        config = json.load(f)
-                    token = config.get("anthropic.apiKey") or config.get("apiKey")
-                    if token:
-                        return token
-                except:
-                    pass
-        
-        return None
-    
-    def execute(self, prompt: str) -> bool:
+    def execute(self, prompt: str, timeout_seconds: int = 3600) -> bool:
         """
-        Execute a session using Claude.
+        Execute a session using cursor-agent CLI.
         
         Args:
             prompt: Full prompt (initializer or coding)
+            timeout_seconds: Max time for this session
         
         Returns:
             True if session completed successfully
         """
         
-        # Use prompt directly (it's already complete from prompts/*.md)
-        messages = [{"role": "user", "content": prompt}]
+        # Write prompt to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write(prompt)
+            prompt_file = f.name
         
-        iteration = 0
-        max_iterations = 50
-        
-        while iteration < max_iterations:
-            iteration += 1
+        try:
+            print(f"   🚀 Starting cursor-agent session...")
             
-            try:
-                response = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=8000,
-                    messages=messages,
-                    tools=self._get_tools()
-                )
-                
-                # Check if agent is done
-                if response.stop_reason == "end_turn":
-                    print(f"   ✅ Completed ({iteration} iterations)")
-                    return True
-                
-                # Execute tool calls
-                if response.stop_reason == "tool_use":
-                    tool_results = []
-                    
-                    for block in response.content:
-                        if block.type == "tool_use":
-                            result = self._execute_tool(block)
-                            tool_results.append({
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": result
-                            })
-                    
-                    # Continue conversation
-                    messages.append({"role": "assistant", "content": response.content})
-                    messages.append({"role": "user", "content": tool_results})
-                else:
-                    print(f"   ⚠️  Unexpected stop: {response.stop_reason}")
-                    return False
-                    
-            except Exception as e:
-                print(f"   ❌ Error: {e}")
-                return False
-        
-        print(f"   ⚠️  Max iterations reached")
-        return False
-    
-    def _get_tools(self):
-        """Tool definitions (like Anthropic's demo)."""
-        return [
-            {
-                "name": "read_file",
-                "description": "Read file contents",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "File path"}
-                    },
-                    "required": ["path"]
-                }
-            },
-            {
-                "name": "write_file",
-                "description": "Write content to file",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string"},
-                        "content": {"type": "string"}
-                    },
-                    "required": ["path", "content"]
-                }
-            },
-            {
-                "name": "edit_file",
-                "description": "Edit file by replacing text",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string"},
-                        "old_str": {"type": "string"},
-                        "new_str": {"type": "string"}
-                    },
-                    "required": ["path", "old_str", "new_str"]
-                }
-            },
-            {
-                "name": "run_command",
-                "description": "Run shell command",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "command": {"type": "string"}
-                    },
-                    "required": ["command"]
-                }
-            }
-        ]
-    
-    def _execute_tool(self, tool_use) -> str:
-        """Execute a tool call (like Anthropic's demo)."""
-        
-        try:
-            if tool_use.name == "read_file":
-                return self._read_file(tool_use.input["path"])
-            elif tool_use.name == "write_file":
-                return self._write_file(tool_use.input["path"], tool_use.input["content"])
-            elif tool_use.name == "edit_file":
-                return self._edit_file(tool_use.input["path"], tool_use.input["old_str"], tool_use.input["new_str"])
-            elif tool_use.name == "run_command":
-                return self._run_command(tool_use.input["command"])
-            else:
-                return f"Unknown tool: {tool_use.name}"
-        except Exception as e:
-            return f"Error: {e}"
-    
-    def _read_file(self, path: str) -> str:
-        file_path = self.project_dir / path
-        if not file_path.exists():
-            return f"File not found: {path}"
-        return file_path.read_text()
-    
-    def _write_file(self, path: str, content: str) -> str:
-        file_path = self.project_dir / path
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content)
-        return f"Wrote {len(content)} chars to {path}"
-    
-    def _edit_file(self, path: str, old_str: str, new_str: str) -> str:
-        file_path = self.project_dir / path
-        if not file_path.exists():
-            return f"File not found: {path}"
-        
-        content = file_path.read_text()
-        if old_str not in content:
-            return f"String not found in {path}"
-        
-        new_content = content.replace(old_str, new_str, 1)
-        file_path.write_text(new_content)
-        return f"Edited {path}"
-    
-    def _run_command(self, command: str) -> str:
-        """Run command with safety checks."""
-        
-        # Block dangerous commands
-        dangerous = ["rm -rf /", "sudo rm", "mkfs", "dd if=/dev"]
-        if any(cmd in command for cmd in dangerous):
-            return f"Blocked dangerous command"
-        
-        try:
-            result = subprocess.run(
-                command,
-                shell=True,
+            # Run cursor-agent with:
+            # -p --print: Non-interactive mode for scripts
+            # --force: Allow file modifications
+            # --output-format stream-json: Real-time progress
+            # --stream-partial-output: Stream text deltas
+            
+            process = subprocess.Popen(
+                [
+                    "cursor-agent",
+                    "-p",
+                    "--force",
+                    "--output-format", "stream-json",
+                    "--stream-partial-output",
+                    "--file", prompt_file
+                ],
                 cwd=self.project_dir,
-                capture_output=True,
-                timeout=30,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True
             )
-            output = result.stdout + result.stderr
-            return output[:1000]  # Limit output
+            
+            # Stream output in real-time
+            tool_count = 0
+            accumulated_text = ""
+            
+            for line in process.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                
+                try:
+                    import json
+                    event = json.loads(line)
+                    event_type = event.get('type', '')
+                    subtype = event.get('subtype', '')
+                    
+                    if event_type == 'system' and subtype == 'init':
+                        model = event.get('model', 'unknown')
+                        print(f"   🤖 Model: {model}")
+                    
+                    elif event_type == 'assistant':
+                        # Accumulate text
+                        content = event.get('message', {}).get('content', [])
+                        if content and len(content) > 0:
+                            text = content[0].get('text', '')
+                            accumulated_text += text
+                            # Show progress
+                            if len(accumulated_text) % 100 == 0:
+                                print(f"\r   📝 Generating: {len(accumulated_text)} chars", end='', flush=True)
+                    
+                    elif event_type == 'tool_call':
+                        if subtype == 'started':
+                            tool_count += 1
+                            tool_call = event.get('tool_call', {})
+                            
+                            if 'writeToolCall' in tool_call:
+                                path = tool_call['writeToolCall'].get('args', {}).get('path', 'unknown')
+                                print(f"\n   🔧 Tool #{tool_count}: Writing {path}")
+                            elif 'readToolCall' in tool_call:
+                                path = tool_call['readToolCall'].get('args', {}).get('path', 'unknown')
+                                print(f"\n   📖 Tool #{tool_count}: Reading {path}")
+                            elif 'editToolCall' in tool_call:
+                                path = tool_call['editToolCall'].get('args', {}).get('path', 'unknown')
+                                print(f"\n   ✏️  Tool #{tool_count}: Editing {path}")
+                            elif 'bashToolCall' in tool_call:
+                                cmd = tool_call['bashToolCall'].get('args', {}).get('command', 'unknown')
+                                print(f"\n   💻 Tool #{tool_count}: Running {cmd[:50]}")
+                        
+                        elif subtype == 'completed':
+                            tool_call = event.get('tool_call', {})
+                            
+                            if 'writeToolCall' in tool_call:
+                                result = tool_call['writeToolCall'].get('result', {}).get('success', {})
+                                lines = result.get('linesCreated', 0)
+                                size = result.get('fileSize', 0)
+                                print(f"      ✅ Created {lines} lines ({size} bytes)")
+                            elif 'readToolCall' in tool_call:
+                                result = tool_call['readToolCall'].get('result', {}).get('success', {})
+                                lines = result.get('totalLines', 0)
+                                print(f"      ✅ Read {lines} lines")
+                    
+                    elif event_type == 'result':
+                        duration = event.get('duration_ms', 0)
+                        print(f"\n   ⏱️  Session: {duration}ms ({tool_count} tools)")
+                
+                except json.JSONDecodeError:
+                    # Not JSON, probably regular output
+                    print(f"   {line}")
+            
+            # Wait for completion
+            returncode = process.wait(timeout=timeout_seconds)
+            
+            if returncode == 0:
+                print(f"\n   ✅ Session successful!")
+                return True
+            else:
+                print(f"\n   ⚠️  Session completed with code {returncode}")
+                stderr = process.stderr.read()
+                if stderr:
+                    print(f"   Errors: {stderr[:200]}")
+                return returncode == 0
+                
+        except subprocess.TimeoutExpired:
+            process.kill()
+            print(f"\n   ⏰ Session timeout ({timeout_seconds}s)")
+            return False
         except Exception as e:
-            return f"Command failed: {e}"
+            print(f"\n   ❌ Error: {e}")
+            return False
+        finally:
+            # Clean up
+            Path(prompt_file).unlink(missing_ok=True)

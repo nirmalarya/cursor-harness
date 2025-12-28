@@ -287,15 +287,8 @@ class CursorHarness:
             print(f"   Or set ANTHROPIC_API_KEY environment variable")
             return False
         except ValueError as e:
-            # No auth available
+            # cursor-agent not available
             print(f"\n❌ {e}")
-            print(f"\nTo use cursor-harness, either:")
-            print(f"1. Login to Cursor IDE")
-            print(f"2. Set ANTHROPIC_API_KEY environment variable")
-            print(f"\nFor now, using v2.5.0 instead:")
-            print(f"   cd /Users/nirmalarya/Workspace/cursor-harness")
-            print(f"   git checkout v2.5.0")
-            print(f"   pipx install -e . --force")
             return False
         except Exception as e:
             print(f"   ⚠️  Error: {e}")
