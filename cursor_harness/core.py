@@ -61,7 +61,7 @@ class CursorHarness:
         mode: str,
         spec_file: Optional[Path] = None,
         timeout_minutes: int = 60,
-        model: str = "claude-sonnet-4"
+        model: str = "sonnet-4.5"
     ):
         self.project_dir = Path(project_dir).resolve()
         self.mode = mode  # greenfield, enhancement, bugfix, backlog

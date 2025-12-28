@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent dir to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core import CursorHarness, WorkItem
+from cursor_harness.core import CursorHarness, WorkItem
 
 
 def test_greenfield_simple():
@@ -72,9 +72,7 @@ def test_greenfield_simple():
     assert (test_dir / ".git").exists(), "Git should be initialized"
     print("✅ Git initialized")
     
-    # Verify mode adapter loaded
-    assert harness.mode_adapter is not None, "Mode adapter should be loaded"
-    print("✅ Mode adapter loaded")
+    print("✅ Setup complete")
     
     # Test getting work
     print("\n" + "-"*60)

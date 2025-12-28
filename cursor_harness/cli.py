@@ -20,14 +20,14 @@ def main():
     greenfield.add_argument('project_dir', type=Path, help='Project directory')
     greenfield.add_argument('--spec', type=Path, help='Specification file')
     greenfield.add_argument('--timeout', type=int, default=480, help='Timeout in minutes')
-    greenfield.add_argument('--model', type=str, default='claude-sonnet-4', help='Model to use (claude-sonnet-4, gpt-4, etc)')
+    greenfield.add_argument('--model', type=str, default='sonnet-4.5', help='Model: sonnet-4.5, opus-4.5, gpt-5, composer-1')
     
     # Enhancement
     enhance = subparsers.add_parser('enhance', help='Add features to existing project')
     enhance.add_argument('project_dir', type=Path, help='Project directory')
     enhance.add_argument('--spec', type=Path, required=True, help='Enhancement spec')
     enhance.add_argument('--timeout', type=int, default=480, help='Timeout in minutes')
-    enhance.add_argument('--model', type=str, default='claude-sonnet-4', help='Model to use')
+    enhance.add_argument('--model', type=str, default='sonnet-4.5', help='Model: sonnet-4.5, opus-4.5, gpt-5, composer-1')
     
     # Backlog
     backlog = subparsers.add_parser('backlog', help='Process Azure DevOps backlog')
@@ -35,7 +35,7 @@ def main():
     backlog.add_argument('--org', required=True, help='Azure DevOps organization')
     backlog.add_argument('--project', required=True, help='Azure DevOps project')
     backlog.add_argument('--timeout', type=int, default=1440, help='Timeout in minutes')
-    backlog.add_argument('--model', type=str, default='claude-sonnet-4', help='Model to use')
+    backlog.add_argument('--model', type=str, default='sonnet-4.5', help='Model: sonnet-4.5, opus-4.5, gpt-5, composer-1')
     
     args = parser.parse_args()
     
