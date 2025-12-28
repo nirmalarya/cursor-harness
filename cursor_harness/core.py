@@ -98,40 +98,53 @@ class CursorHarness:
             # 1. Setup (once)
             self._setup()
             
-            # 2. Main work loop
-            while not self._is_complete():
+            # 2. Main work loop (Anthropic's session pattern)
+            if self.is_first_session:
+                # Session 1: INITIALIZER
+                print(f"\n{'─'*60}")
+                print("📋 Session 1: INITIALIZER")
+                print(f"{'─'*60}")
+                
+                success = self._run_initializer_session()
+                
+                if not success:
+                    print("\n❌ Initializer session failed!")
+                    return False
+                
+                print("\n✅ Environment initialized!")
+                print("   Created: feature_list.json, init.sh, cursor-progress.txt, git repo")
+                
+                # Mark first session complete
+                self.is_first_session = False
+            
+            # Sessions 2-N: CODING (incremental progress)
+            session = 1 if not self.is_first_session else 2
+            max_sessions = 100  # Safety limit
+            
+            while session <= max_sessions:
                 # Check timeout
                 if time.time() - self.start_time > self.timeout:
                     print(f"\n⏰ Timeout reached ({self.timeout/60:.0f} minutes)")
                     return False
                 
-                # Get next work item
-                work_item = self._get_next_work()
-                if not work_item:
-                    print("\n✅ No more work items!")
+                # Check if complete
+                if self._is_complete():
+                    print(f"\n✅ All features complete!")
                     break
                 
-                # Execute work item
-                self.iteration += 1
+                # Run coding session
                 print(f"\n{'─'*60}")
-                print(f"📋 Iteration {self.iteration}: {work_item.title}")
+                print(f"📋 Session {session}: CODING")
                 print(f"{'─'*60}")
                 
-                success = self._execute_work_item(work_item)
+                success = self._run_coding_session()
                 
                 if success:
-                    self._mark_complete(work_item)
-                    self.failure_counts[work_item.id] = 0
-                    print(f"✅ {work_item.title} - Complete!")
+                    print(f"✅ Session {session} complete")
                 else:
-                    self.failure_counts[work_item.id] = self.failure_counts.get(work_item.id, 0) + 1
-                    
-                    if self.failure_counts[work_item.id] >= self.max_retries:
-                        print(f"❌ {work_item.title} - Failed {self.max_retries} times, skipping!")
-                        self._mark_complete(work_item)  # Skip it
-                    else:
-                        self._handle_failure(work_item)
-                        print(f"❌ {work_item.title} - Failed (retry {self.failure_counts[work_item.id]}/{self.max_retries})")
+                    print(f"⚠️  Session {session} made no progress")
+                
+                session += 1
             
             # 3. Final validation
             print(f"\n{'='*60}")
@@ -236,30 +249,25 @@ class CursorHarness:
         # For other modes, use iteration limit for now
         return self.iteration >= 10
     
-    def _execute_work_item(self, work_item: WorkItem) -> bool:
-        """Execute a work item."""
+    def _run_initializer_session(self) -> bool:
+        """Run the initializer session (Anthropic's pattern)."""
         
-        print(f"\n📝 {work_item.title}")
+        prompt = self._build_prompt()
         
-        # Build prompt
-        prompt = self._build_prompt(work_item)
-        prompt_file = self.state_dir / f"prompt_{work_item.id}.txt"
-        prompt_file.write_text(prompt)
-        
-        # Try Claude executor
-        if self._try_claude_executor(prompt, work_item):
-            return self._validate_work_item(work_item)
-        
-        # Fallback: Manual mode
-        print(f"   ℹ️  Manual mode - implement yourself")
-        print(f"   📄 Prompt: {prompt_file}")
-        print(f"   Press ENTER when done...")
-        input()
-        
-        return self._validate_work_item(work_item)
+        # Execute with Claude
+        return self._execute_session(prompt, "initializer")
     
-    def _try_claude_executor(self, prompt: str, work_item: WorkItem) -> bool:
-        """Try to use Cursor executor (uses Cursor's auth!)."""
+    def _run_coding_session(self) -> bool:
+        """Run a coding session (Anthropic's pattern)."""
+        
+        prompt = self._build_prompt()
+        
+        # Execute with Claude
+        return self._execute_session(prompt, "coding")
+    
+    def _execute_session(self, prompt: str, session_type: str) -> bool:
+        """Execute a session using Cursor's Claude."""
+        
         try:
             from .executor.cursor_executor import CursorExecutor
             

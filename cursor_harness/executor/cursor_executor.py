@@ -18,140 +18,6 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 
-# ============================================================================
-# ANTHROPIC'S TWO-PROMPT PATTERN
-# Based on: https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
-# ============================================================================
-
-# INITIALIZER PROMPT - First session only, sets up environment
-INITIALIZER_PROMPT = """You are the initializer agent for a long-running autonomous coding project.
-
-Your job: Set up the environment for future coding sessions.
-
-## Step 1: Read Project Specification
-
-Read the specification provided in the task below.
-
-## Step 2: Create feature_list.json
-
-Create a comprehensive feature list with 100-200+ features.
-
-Format (exact):
-```json
-[
-  {
-    "category": "functional",
-    "description": "User can create a new chat conversation",
-    "steps": [
-      "Click 'New Chat' button",
-      "Verify new conversation created",
-      "Verify chat shows welcome state"
-    ],
-    "passes": false
-  }
-]
-```
-
-Requirements:
-- Root is array, not object
-- All features have: category, description, steps, passes
-- ALL start with passes: false
-- Be comprehensive (100-200+ features)
-
-## Step 3: Create init.sh
-
-Script to start the development server:
-```bash
-#!/bin/bash
-npm install
-npm run dev &
-sleep 5
-```
-
-Make executable: `chmod +x init.sh`
-
-## Step 4: Create cursor-progress.txt
-
-```bash
-echo "Session 1: Environment initialized" > cursor-progress.txt
-```
-
-## Step 5: Initialize Git
-
-```bash
-git init
-git add .
-git commit -m "Initial setup"
-```
-
-Done. Future sessions will implement features incrementally.
-"""
-
-# CODING PROMPT - All subsequent sessions
-CODING_PROMPT = """You are a coding agent. This is a fresh context window with no memory of previous sessions.
-
-## Step 1: Get Your Bearings
-
-```bash
-pwd
-git log --oneline -20
-cat cursor-progress.txt
-cat feature_list.json | head -50
-```
-
-## Step 2: Check Completion
-
-```bash
-total=$(cat feature_list.json | python3 -c "import json, sys; print(len(json.load(sys.stdin)))")
-passing=$(cat feature_list.json | python3 -c "import json, sys; print(len([f for f in json.load(sys.stdin) if f.get('passes')]))")
-echo "$passing/$total features complete"
-```
-
-If all passing, STOP - project is done.
-
-## Step 3: Start Server
-
-```bash
-./init.sh
-```
-
-## Step 4: Smoke Test
-
-Test basic functionality to ensure nothing is broken.
-For web apps, navigate to localhost and test core flow.
-
-## Step 5: Pick ONE Feature
-
-Find first feature where passes: false.
-Work on ONLY this feature.
-
-## Step 6: Implement
-
-1. Write tests first (TDD)
-2. Implement code
-3. Test manually (use Puppeteer for web apps)
-4. Verify end-to-end
-
-## Step 7: Commit
-
-```bash
-git add .
-git commit -m "feat: <description>"
-```
-
-## Step 8: Update Progress
-
-```bash
-echo "Session N: Implemented <feature>" >> cursor-progress.txt
-```
-
-## Step 9: Mark Feature Passing
-
-Edit feature_list.json - change ONLY passes: false to passes: true for this feature.
-Do NOT remove, edit, or reorder features.
-
-Done. Next session will continue with next feature.
-"""
 
 
 # ============================================================================
@@ -217,21 +83,19 @@ class CursorExecutor:
         
         return None
     
-    def execute(self, task_prompt: str) -> bool:
+    def execute(self, prompt: str) -> bool:
         """
-        Execute a task using Claude.
+        Execute a session using Claude.
         
         Args:
-            task_prompt: The specific work item to implement
+            prompt: Full prompt (initializer or coding)
         
         Returns:
-            True if completed successfully
+            True if session completed successfully
         """
         
-        # Combine system prompt + task (like Anthropic's demo)
-        full_prompt = f"{SYSTEM_PROMPT}\n\n---\n\n{task_prompt}"
-        
-        messages = [{"role": "user", "content": full_prompt}]
+        # Use prompt directly (it's already complete from prompts/*.md)
+        messages = [{"role": "user", "content": prompt}]
         
         iteration = 0
         max_iterations = 50
