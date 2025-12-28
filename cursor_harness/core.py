@@ -79,7 +79,22 @@ class CursorHarness:
         self.max_retries = 3
     
         # Track if this is first session (initializer) or coding session
-        self.is_first_session = not (self.project_dir / "feature_list.json").exists()
+        feature_list_exists = (self.project_dir / "feature_list.json").exists()
+        self.is_first_session = not feature_list_exists
+        
+        # Check if continuation mode (existing feature list is large)
+        self.is_continuation = False
+        if feature_list_exists:
+            try:
+                import json
+                with open(self.project_dir / "feature_list.json") as f:
+                    features = json.load(f)
+                # If >50 features, use continuation mode
+                if len(features) > 50:
+                    self.is_continuation = True
+                    print(f"   ℹ️  Continuation mode ({len(features)} features)")
+            except:
+                pass
     
     def run(self) -> bool:
         """
@@ -207,8 +222,8 @@ class CursorHarness:
         # 3. Self-healing infrastructure (brownfield modes only)
         if self.mode in ["enhancement", "enhance", "backlog"]:
             from .infra.healer import InfrastructureHealer
-            healer = InfrastructureHealer(self.project_dir)
-            healer.heal()
+        healer = InfrastructureHealer(self.project_dir)
+        healer.heal()
         
         # 4. Backlog mode: Prepare Azure DevOps state
         if self.mode == "backlog":
@@ -329,7 +344,11 @@ class CursorHarness:
             elif self.mode == "backlog":
                 prompt_file = prompts_dir / "backlog_coding.md"
             else:  # greenfield
-                prompt_file = prompts_dir / "coding.md"
+                # Use continuation mode for large projects
+                if self.is_continuation:
+                    prompt_file = prompts_dir / "continuation_coding.md"
+                else:
+                    prompt_file = prompts_dir / "coding.md"
         
         prompt = prompt_file.read_text()
         
