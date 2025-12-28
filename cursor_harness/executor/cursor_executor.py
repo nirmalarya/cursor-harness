@@ -93,14 +93,15 @@ class CursorExecutor:
             tool_count = 0
             accumulated_text = ""
             
-            for line in process.stdout:
-                line = line.strip()
-                if not line:
-                    continue
-                
-                try:
-                    import json
-                    event = json.loads(line)
+            try:
+                for line in process.stdout:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        import json
+                        event = json.loads(line)
                     event_type = event.get('type', '')
                     subtype = event.get('subtype', '')
                     
@@ -168,12 +169,12 @@ class CursorExecutor:
                         duration = event.get('duration_ms', 0)
                         print(f"\n   ⏱️  Session: {duration}ms ({tool_count} tools)")
                 
-                except json.JSONDecodeError:
-                    # Not JSON, probably regular output
-                    print(f"   {line}")
-            
-            # Wait for completion
-            returncode = process.wait(timeout=timeout_seconds)
+                    except json.JSONDecodeError:
+                        # Not JSON, probably regular output
+                        print(f"   {line}")
+                
+                # Wait for completion
+                returncode = process.wait(timeout=timeout_seconds)
             
             if returncode == 0:
                 print(f"\n   ✅ Session successful!")
