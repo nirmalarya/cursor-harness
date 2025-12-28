@@ -2,56 +2,74 @@
 
 **Simple, Reliable, Production-Ready Autonomous Coding**
 
-## Vision
+Based on [Anthropic's effective harness pattern](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
 
-Build on Anthropic's autonomous-coding demo, but for **real production work**:
+## Design
 
-- ✅ **Greenfield** - New projects from scratch
-- ✅ **Enhancement** - Adding features to existing apps
-- ✅ **Bugfix** - Fixing issues in brownfield codebases
-- ✅ **Backlog** - Processing Azure DevOps work items
+Based on Anthropic's two-agent pattern:
 
-## Core Principles
+**1. Initializer Agent** (First session)
+- Sets up environment
+- Creates feature list
+- Initializes git
+- Creates startup script
 
-### 1. Simple Core (Like Anthropic)
-```python
-while not complete:
-    work = get_next_work()
-    execute(work)
-    validate(work)
-```
+**2. Coding Agent** (Subsequent sessions)
+- Fresh context window (no memory)
+- Reads progress files and git
+- Implements ONE feature at a time
+- Tests end-to-end
+- Commits and updates progress
 
-### 2. Powerful Features (Beyond Anthropic)
-- Self-healing infrastructure
-- Real E2E validation (Puppeteer)
-- Brownfield support (existing codebases)
-- Security scanning (secrets, vulnerabilities)
+## Modes
 
-### 3. Reliability First
-- Test each feature
-- Simple before complex
-- Working before optimizing
+- ✅ **Greenfield** - New projects (feature_list.json)
+- ✅ **Enhancement** - Add to existing apps (enhancement_list.json)
+- ✅ **Backlog** - Azure DevOps PBIs (feature_list.json from PBIs)
+
+## Key Features
+
+### 1. Anthropic's Proven Pattern
+- Two-prompt system (initializer + coding)
+- Incremental progress (one feature at a time)
+- Clear artifacts (feature_list.json, cursor-progress.txt, git)
+- Session-based (fresh context each time)
+
+### 2. Production Enhancements
+- Multiple modes (greenfield, enhancement, backlog)
+- Self-healing infrastructure (Docker, DB, buckets)
+- Real validation (tests, E2E, secrets scanning)
+- Azure DevOps integration
+
+### 3. Simple & Reliable
+- ~1,100 lines total (vs 10,000+ in v2.x)
+- Easy to understand and debug
+- Uses Cursor's auth (no API key needed!)
+- Tested pattern from Anthropic
 
 ## Architecture
 
 ```
-cursor-harness-v3/
-├── core.py              # Main loop (~300 lines, inspired by Anthropic)
-├── modes/               # Different work sources
-│   ├── greenfield.py    # feature_list.json
-│   ├── enhancement.py   # Bugfix mode
-│   └── backlog.py       # Azure DevOps
-├── validators/          # Real validation
-│   ├── e2e_tester.py    # Puppeteer integration
-│   ├── secrets.py       # Pre-commit scanning
-│   └── quality.py       # Coverage, linting
-├── infra/               # Self-healing
-│   ├── healer.py        # Auto-fix Docker/DB
-│   └── loop_detect.py   # Prevent stalling
-└── cli.py               # Simple interface
+cursor_harness/
+├── core.py                      # Session orchestrator (~250 lines)
+├── cli.py                       # CLI interface (~60 lines)
+├── executor/
+│   └── cursor_executor.py       # Claude executor (~250 lines)
+├── prompts/
+│   ├── initializer.md           # Greenfield session 1
+│   ├── coding.md                # Greenfield sessions 2-N
+│   ├── enhancement_initializer.md
+│   ├── enhancement_coding.md
+│   ├── backlog_initializer.md
+│   └── backlog_coding.md
+├── validators/
+│   ├── test_runner.py           # Test execution (~100 lines)
+│   └── secrets_scanner.py       # Security scanning (~100 lines)
+└── infra/
+    └── healer.py                # Infrastructure self-healing (~100 lines)
 ```
 
-**Total: ~2000 lines** (not 10,000+!)
+**Total: ~1,100 lines** (simple, maintainable)
 
 ## Development Plan
 
