@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cursor-harness",
-    version="3.0.0",
+    version="3.0.2",
     packages=find_packages(),
     python_requires=">=3.9",
     install_requires=[
