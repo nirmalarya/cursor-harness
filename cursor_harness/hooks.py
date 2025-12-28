@@ -51,10 +51,115 @@ class HooksManager:
         hooks_config = {
             "version": 1,
             "hooks": {
-                "afterFileEdit": [],
-                "stop": []
+                "beforeShellExecution": [],  # Gate risky operations
+                "afterFileEdit": [],          # Auto-format, quick checks
+                "stop": []                    # Final validation
             }
         }
+        
+        # CRITICAL: Secrets scanner before git commit
+        secrets_hook = hooks_dir / "block-secrets.sh"
+        secrets_hook.write_text("""#!/bin/bash
+# Block git commits if secrets detected
+# Based on Cursor hooks spec: https://cursor.com/docs/agent/hooks
+
+# Read JSON input
+input=$(cat)
+command=$(echo "$input" | jq -r '.command // empty')
+
+# Check if this is a git commit
+if [[ "$command" =~ "git commit" ]] || [[ "$command" =~ "git add" ]]; then
+    # Scan for secrets
+    if grep -r -i "api[_-]key.*=.*['\\\"]" . 2>/dev/null | grep -v ".git" | grep -v "hooks" | grep -v ".env.example" | head -1; then
+        cat << 'EOF'
+{
+  "permission": "deny",
+  "user_message": "⚠️  Potential API key detected in code!",
+  "agent_message": "Git operation blocked: Found potential API key in code. Never commit secrets! Use environment variables instead. Remove the secret and try again."
+}
+EOF
+        exit 0
+    fi
+    
+    if grep -r -i "password.*=.*['\\\"]" . 2>/dev/null | grep -v ".git" | grep -v "hooks" | grep -v ".env.example" | head -1; then
+        cat << 'EOF'
+{
+  "permission": "deny",
+  "user_message": "⚠️  Potential password detected in code!",
+  "agent_message": "Git operation blocked: Found potential password in code. Never commit secrets! Use environment variables instead. Remove the password and try again."
+}
+EOF
+        exit 0
+    fi
+fi
+
+# No secrets found - allow
+cat << 'EOF'
+{
+  "permission": "allow"
+}
+EOF
+exit 0
+""")
+        secrets_hook.chmod(0o755)
+        
+        hooks_config["hooks"]["beforeShellExecution"].append({
+            "command": "./hooks/block-secrets.sh"
+        })
+        
+        # Git workflow validation hook
+        git_validate_hook = hooks_dir / "git-workflow.sh"
+        git_validate_hook.write_text("""#!/bin/bash
+# Validate before git commit
+# Runs linting, security checks, tests
+
+# Read JSON input
+input=$(cat)
+command=$(echo "$input" | jq -r '.command // empty')
+
+# Only validate git commits
+if [[ ! "$command" =~ "git commit" ]]; then
+    cat << 'EOF'
+{
+  "permission": "allow"
+}
+EOF
+    exit 0
+fi
+
+# Run validations
+echo "🔍 Pre-commit validation..." >&2
+
+# 1. Linting (if applicable)
+if [ -f "package.json" ]; then
+    npm run lint > /dev/null 2>&1 || echo "⚠️  Linting issues (continuing)" >&2
+fi
+
+# 2. Quick test (if applicable)
+if [ -f "requirements.txt" ]; then
+    pytest --tb=short -x > /dev/null 2>&1 || echo "⚠️  Test failures (review before merging)" >&2
+elif [ -f "go.mod" ]; then
+    go test ./... > /dev/null 2>&1 || echo "⚠️  Test failures (review before merging)" >&2
+fi
+
+# 3. Security scan (basic)
+if grep -r "TODO.*SECURITY" . 2>/dev/null | grep -v ".git" | head -1 >&2; then
+    echo "⚠️  Security TODOs found - review before production" >&2
+fi
+
+# Allow commit (warnings shown, but not blocking)
+cat << 'EOF'
+{
+  "permission": "allow"
+}
+EOF
+exit 0
+""")
+        git_validate_hook.chmod(0o755)
+        
+        hooks_config["hooks"]["beforeShellExecution"].append({
+            "command": "./hooks/git-workflow.sh"
+        })
         
         # Python project
         if (self.project_dir / "requirements.txt").exists():
