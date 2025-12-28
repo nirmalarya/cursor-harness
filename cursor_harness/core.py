@@ -213,17 +213,8 @@ class CursorHarness:
         print("✅ Setup complete\n")
     
     def _load_mode_adapter(self):
-        """Load the appropriate mode adapter."""
-        from .modes.greenfield import GreenfieldMode
-        
-        if self.mode == "greenfield":
-            self.mode_adapter = GreenfieldMode(self.project_dir)
-            self.mode_adapter.initialize()
-            print(f"   Mode: Greenfield (feature_list.json)")
-        else:
-            # Other modes will be added later
-            self.mode_adapter = None
-            print(f"   Mode: {self.mode} (not implemented yet)")
+        """Mode adapters not needed - agent reads feature_list.json directly."""
+        print(f"   Mode: {self.mode}")
     
     
     def _is_complete(self) -> bool:
