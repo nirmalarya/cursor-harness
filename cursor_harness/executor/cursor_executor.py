@@ -1,10 +1,14 @@
 """
 Cursor executor for cursor-harness v3.0.
 
-Uses cursor-agent CLI which automatically uses Cursor's login.
-No API key needed!
+Uses cursor-agent CLI which:
+- Uses Cursor's logged-in auth (no API key!)
+- Auto-loads MCP servers from ~/.cursor/mcp.json (Puppeteer, Azure DevOps, etc)
+- Streams output in real-time
 
-Reference: https://cursor.com/docs/cli/using
+References:
+- https://cursor.com/docs/cli/using
+- https://cursor.com/docs/cli/mcp
 """
 
 import subprocess
@@ -59,10 +63,15 @@ class CursorExecutor:
             print(f"   🚀 Starting cursor-agent session...")
             
             # Run cursor-agent with:
-            # -p --print: Non-interactive mode for scripts
-            # --force: Allow file modifications
-            # --output-format stream-json: Real-time progress
-            # --stream-partial-output: Stream text deltas
+            # -p: Non-interactive print mode for scripts
+            # --force: Allow file modifications without confirmation
+            # --output-format stream-json: Real-time streaming
+            # --stream-partial-output: Stream text character-by-character
+            # 
+            # MCP servers auto-loaded from ~/.cursor/mcp.json:
+            # - Puppeteer (browser automation for E2E testing)
+            # - Azure DevOps (work item management)
+            # - Any other configured MCP servers
             
             process = subprocess.Popen(
                 [
@@ -71,7 +80,7 @@ class CursorExecutor:
                     "--force",
                     "--output-format", "stream-json",
                     "--stream-partial-output",
-                    "--file", prompt_file
+                    prompt  # Pass prompt directly as argument
                 ],
                 cwd=self.project_dir,
                 stdout=subprocess.PIPE,
