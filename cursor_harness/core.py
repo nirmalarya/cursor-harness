@@ -291,28 +291,41 @@ class CursorHarness:
     
     def _build_prompt(self, work_item: WorkItem = None) -> str:
         """
-        Build prompt based on Anthropic's two-prompt pattern.
+        Build prompt based on Anthropic's two-prompt pattern + mode.
         
         Returns:
-            Initializer prompt (first session) or Coding prompt (subsequent)
+            Appropriate prompt for mode and session
         """
         from pathlib import Path
         
         prompts_dir = Path(__file__).parent / "prompts"
         
+        # Select prompt based on mode and session
         if self.is_first_session:
-            # INITIALIZER session
-            initializer_prompt = (prompts_dir / "initializer.md").read_text()
-            
-            # Add project spec
-            if self.spec_file and self.spec_file.exists():
-                spec_content = self.spec_file.read_text()
-                return f"{initializer_prompt}\n\n---\n\n## Project Specification\n\n{spec_content}"
-            
-            return initializer_prompt
+            # INITIALIZER prompts
+            if self.mode == "enhancement" or self.mode == "enhance":
+                prompt_file = prompts_dir / "enhancement_initializer.md"
+            elif self.mode == "backlog":
+                prompt_file = prompts_dir / "backlog_initializer.md"
+            else:  # greenfield
+                prompt_file = prompts_dir / "initializer.md"
         else:
-            # CODING session
-            return (prompts_dir / "coding.md").read_text()
+            # CODING prompts
+            if self.mode == "enhancement" or self.mode == "enhance":
+                prompt_file = prompts_dir / "enhancement_coding.md"
+            elif self.mode == "backlog":
+                prompt_file = prompts_dir / "backlog_coding.md"
+            else:  # greenfield
+                prompt_file = prompts_dir / "coding.md"
+        
+        prompt = prompt_file.read_text()
+        
+        # Add project spec for initializer
+        if self.is_first_session and self.spec_file and self.spec_file.exists():
+            spec_content = self.spec_file.read_text()
+            prompt = f"{prompt}\n\n---\n\n## Project Specification\n\n{spec_content}"
+        
+        return prompt
     
     
     def _final_validation(self) -> bool:
