@@ -44,6 +44,9 @@ class HooksManager:
         cursor-agent will run these automatically!
         """
         
+        # First: Create .cursorignore (security!)
+        self._create_cursorignore()
+        
         hooks_dir = self.project_dir / "hooks"
         hooks_dir.mkdir(exist_ok=True)
         
@@ -253,6 +256,88 @@ exit 0
         
         hook_count = len(hooks_config["hooks"]["afterFileEdit"]) + len(hooks_config["hooks"]["stop"])
         print(f"   ✅ Hooks configured ({hook_count} total - cursor-agent will auto-run them)")
+    
+    def _create_cursorignore(self):
+        """
+        Create .cursorignore to block agent access to secrets.
+        
+        From: https://cursor.com/docs/context/ignore-files
+        
+        Prevents accessing:
+        - .env files (like AutoGraph .env.bak leak!)
+        - API keys, credentials
+        - Private keys, certificates
+        
+        User can add more patterns as needed.
+        """
+        
+        cursorignore = self.project_dir / ".cursorignore"
+        
+        if cursorignore.exists():
+            print(f"   ℹ️  .cursorignore exists (keeping custom patterns)")
+            return
+        
+        # Default patterns from Cursor docs + security best practices
+        ignore_patterns = """# cursor-harness Security Ignore List
+# Blocks agent/AI access to sensitive files
+# Based on: https://cursor.com/docs/context/ignore-files
+
+# Environment files (CRITICAL - prevents AutoGraph .env.bak issue!)
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+*.env
+*.env.*
+
+# Credentials and secrets
+**/credentials.json
+**/secrets.json
+**/service-account*.json
+**/*-credentials.json
+**/*-secrets.json
+
+# Keys and certificates
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/id_rsa
+**/id_ed25519
+**/*.crt
+**/*.cer
+
+# Cloud provider configs
+**/.aws/
+**/.azure/
+**/.gcloud/
+
+# Database dumps (may contain sensitive data)
+**/*.sql
+**/*.dump
+**/*.backup
+
+# Logs (may contain secrets)
+**/*.log
+**/logs/
+
+# Backup files (like .env.bak that caused AutoGraph leak!)
+**/*.bak
+**/*.backup
+**/*.old
+
+# IDE and tool configs (may have tokens)
+**/.vscode/settings.json
+**/.cursor/User/
+
+# Add your custom patterns below:
+# myapp/secrets/
+# config/production.yml
+"""
+        
+        cursorignore.write_text(ignore_patterns)
+        print(f"   🔒 .cursorignore created (blocks .env, keys, credentials)")
     
     def verify_hooks_setup(self) -> bool:
         """Verify hooks are set up correctly."""
