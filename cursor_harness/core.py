@@ -157,8 +157,7 @@ class CursorHarness:
                 success = self._run_coding_session()
                 
                 if success:
-                    # Run onStop hooks
-                    self.hooks_manager.run_hook('onStop')
+                    # cursor-agent runs hooks automatically (no need to call them!)
                     print(f"✅ Session {session} complete")
                 else:
                     print(f"⚠️  Session {session} made no progress")

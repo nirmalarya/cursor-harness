@@ -38,74 +38,125 @@ class HooksManager:
         return {}
     
     def setup_default_hooks(self):
-        """Setup default hooks for the project."""
+        """
+        Setup Cursor hooks (hooks.json + shell scripts).
         
-        # Auto-detect project type
-        hooks = {
-            "afterFileEdit": [],
-            "onStop": [],
-            "sessionStart": []
+        cursor-agent will run these automatically!
+        """
+        
+        hooks_dir = self.project_dir / "hooks"
+        hooks_dir.mkdir(exist_ok=True)
+        
+        # Cursor hooks.json format (from docs)
+        hooks_config = {
+            "version": 1,
+            "hooks": {
+                "afterFileEdit": [],
+                "stop": []
+            }
         }
         
         # Python project
         if (self.project_dir / "requirements.txt").exists():
-            hooks["afterFileEdit"].append({
-                "name": "pytest",
-                "command": "pytest --tb=short -x",
-                "workingDir": ".",
-                "continueOnError": True
+            # After edit: run tests
+            test_script = hooks_dir / "run-tests.sh"
+            test_script.write_text("""#!/bin/bash
+# Auto-run pytest after file edits
+pytest --tb=short -x || true
+exit 0
+""")
+            test_script.chmod(0o755)
+            
+            hooks_config["hooks"]["afterFileEdit"].append({
+                "command": "./hooks/run-tests.sh"
             })
-            hooks["onStop"].append({
-                "name": "coverage",
-                "command": "pytest --cov --cov-report=term-missing",
-                "workingDir": ".",
-                "continueOnError": True
+            
+            # On stop: coverage check
+            cov_script = hooks_dir / "coverage-check.sh"
+            cov_script.write_text("""#!/bin/bash
+# Run coverage on session stop
+pytest --cov --cov-report=term-missing || true
+exit 0
+""")
+            cov_script.chmod(0o755)
+            
+            hooks_config["hooks"]["stop"].append({
+                "command": "./hooks/coverage-check.sh"
             })
         
         # TypeScript/JavaScript project
         if (self.project_dir / "package.json").exists():
-            hooks["afterFileEdit"].append({
-                "name": "eslint",
-                "command": "npm run lint || true",
-                "workingDir": ".",
-                "continueOnError": True
+            # After edit: eslint
+            lint_script = hooks_dir / "eslint.sh"
+            lint_script.write_text("""#!/bin/bash
+# Auto-run eslint after file edits
+npm run lint || true
+exit 0
+""")
+            lint_script.chmod(0o755)
+            
+            hooks_config["hooks"]["afterFileEdit"].append({
+                "command": "./hooks/eslint.sh"
             })
-            hooks["onStop"].append({
-                "name": "build",
-                "command": "npm run build",
-                "workingDir": ".",
-                "continueOnError": True
+            
+            # On stop: build
+            build_script = hooks_dir / "build.sh"
+            build_script.write_text("""#!/bin/bash
+# Build on session stop
+npm run build || true
+exit 0
+""")
+            build_script.chmod(0o755)
+            
+            hooks_config["hooks"]["stop"].append({
+                "command": "./hooks/build.sh"
             })
         
         # Go project
         if (self.project_dir / "go.mod").exists():
-            hooks["afterFileEdit"].append({
-                "name": "go-fmt",
-                "command": "gofmt -w .",
-                "workingDir": ".",
-                "continueOnError": True
+            # After edit: gofmt + go vet
+            fmt_script = hooks_dir / "go-check.sh"
+            fmt_script.write_text("""#!/bin/bash
+# Auto-format and vet Go code
+gofmt -w . || true
+go vet ./... || true
+exit 0
+""")
+            fmt_script.chmod(0o755)
+            
+            hooks_config["hooks"]["afterFileEdit"].append({
+                "command": "./hooks/go-check.sh"
             })
-            hooks["afterFileEdit"].append({
-                "name": "go-vet",
-                "command": "go vet ./...",
-                "workingDir": ".",
-                "continueOnError": True
-            })
-            hooks["onStop"].append({
-                "name": "go-test",
-                "command": "go test ./...",
-                "workingDir": ".",
-                "continueOnError": True
+            
+            # On stop: tests
+            test_script = hooks_dir / "go-test.sh"
+            test_script.write_text("""#!/bin/bash
+# Run Go tests on session stop
+go test ./... || true
+exit 0
+""")
+            test_script.chmod(0o755)
+            
+            hooks_config["hooks"]["stop"].append({
+                "command": "./hooks/go-test.sh"
             })
         
-        # Save hooks
+        # Save hooks.json
         self.hooks_file.parent.mkdir(exist_ok=True, parents=True)
         with open(self.hooks_file, 'w') as f:
-            json.dump(hooks, f, indent=2)
+            json.dump(hooks_config, f, indent=2)
         
-        print(f"   ✅ Hooks configured ({len(hooks['afterFileEdit'])} after-edit, {len(hooks['onStop'])} on-stop)")
+        hook_count = len(hooks_config["hooks"]["afterFileEdit"]) + len(hooks_config["hooks"]["stop"])
+        print(f"   ✅ Hooks configured ({hook_count} total - cursor-agent will auto-run them)")
     
-    def run_hook(self, hook_type: str) -> bool:
+    def verify_hooks_setup(self) -> bool:
+        """Verify hooks are set up correctly."""
+        if self.hooks_file.exists():
+            print(f"   ✅ Hooks configured at {self.hooks_file}")
+            return True
+        return False
+    
+    def run_hook_DEPRECATED(self, hook_type: str) -> bool:
         """
         Run hooks of a specific type.
         
