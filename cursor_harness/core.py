@@ -204,18 +204,17 @@ class CursorHarness:
                 capture_output=True
             )
         
-        # 3. Self-healing infrastructure (brownfield modes)
+        # 3. Self-healing infrastructure (brownfield modes only)
         if self.mode in ["enhancement", "enhance", "backlog"]:
             from .infra.healer import InfrastructureHealer
-        healer = InfrastructureHealer(self.project_dir)
-        healer.heal()
-        
-        print(f"   Mode: {self.mode}")
+            healer = InfrastructureHealer(self.project_dir)
+            healer.heal()
         
         # 4. Backlog mode: Prepare Azure DevOps state
         if self.mode == "backlog":
             self._setup_backlog_mode()
         
+        print(f"   Mode: {self.mode}")
         print("✅ Setup complete\n")
     
     def _setup_backlog_mode(self):
