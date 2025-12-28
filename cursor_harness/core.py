@@ -323,21 +323,23 @@ class CursorHarness:
         Returns:
             Initializer prompt (first session) or Coding prompt (subsequent)
         """
-        from .prompts import get_prompt
+        from pathlib import Path
+        
+        prompts_dir = Path(__file__).parent / "prompts"
         
         if self.is_first_session:
             # INITIALIZER session
-            prompt_parts = [get_prompt('initializer')]
+            initializer_prompt = (prompts_dir / "initializer.md").read_text()
             
             # Add project spec
             if self.spec_file and self.spec_file.exists():
                 spec_content = self.spec_file.read_text()
-                prompt_parts.append(f"\n\n## Project Specification\n\n{spec_content}")
+                return f"{initializer_prompt}\n\n---\n\n## Project Specification\n\n{spec_content}"
             
-            return "\n".join(prompt_parts)
+            return initializer_prompt
         else:
             # CODING session
-            return get_prompt('coding')
+            return (prompts_dir / "coding.md").read_text()
     
     def _mark_complete(self, work_item: WorkItem):
         """Mark work item as complete."""
