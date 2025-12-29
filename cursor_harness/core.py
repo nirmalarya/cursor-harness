@@ -252,7 +252,24 @@ class CursorHarness:
         hooks_manager = HooksManager(self.project_dir)
         hooks_manager.setup_default_hooks()
         self.hooks_manager = hooks_manager
-        
+
+        # 4.5. Setup MCP servers (browser automation + Azure DevOps)
+        from .setup_mcp import MCPServerSetup
+        mcp_setup = MCPServerSetup(self.project_dir, self.mode)
+
+        if self.mode == "backlog":
+            # Setup Azure DevOps MCP for backlog mode
+            mcp_setup.setup(
+                ado_org=getattr(self, 'ado_org', None),
+                ado_project=getattr(self, 'ado_project', None)
+            )
+        else:
+            # Setup browser automation MCP for greenfield/enhancement
+            mcp_setup.setup()
+
+        # Store browser tools for prompts
+        self.browser_tools = mcp_setup.get_browser_tools()
+
         # 5. Backlog mode: Prepare Azure DevOps state
         if self.mode == "backlog":
             self._setup_backlog_mode()
@@ -434,16 +451,68 @@ class CursorHarness:
                     prompt_file = prompts_dir / "coding.md"
         
         prompt = prompt_file.read_text()
-        
+
+        # Replace template variables with actual MCP tools
+        prompt = self._inject_mcp_tools(prompt)
+
         # Add system instructions (common to all)
         system_instructions = (prompts_dir / "system_instructions.md").read_text()
         prompt = f"{prompt}\n\n---\n\n{system_instructions}"
-        
+
         # Add project spec for initializer
         if self.is_first_session and self.spec_file and self.spec_file.exists():
             spec_content = self.spec_file.read_text()
             prompt = f"{prompt}\n\n---\n\n## Project Specification\n\n{spec_content}"
-        
+
+        return prompt
+
+    def _inject_mcp_tools(self, prompt: str) -> str:
+        """
+        Replace template variables with actual MCP tool names.
+
+        Args:
+            prompt: Prompt template with {{BROWSER_MCP_TOOLS}} placeholder
+
+        Returns:
+            Prompt with actual tool names injected
+        """
+        # Get browser tools (set during _setup())
+        browser_tools = getattr(self, 'browser_tools', [])
+
+        if browser_tools:
+            # Generate tool documentation
+            tool_type = "puppeteer" if "puppeteer_navigate" in browser_tools else "playwright"
+
+            tools_doc = f"""Available {tool_type.capitalize()} MCP tools (auto-configured):
+"""
+
+            tool_descriptions = {
+                "puppeteer_navigate": "Navigate to URL",
+                "puppeteer_screenshot": "Capture screenshot of current page",
+                "puppeteer_click": "Click element by selector",
+                "puppeteer_fill": "Fill form input by selector",
+                "puppeteer_select": "Select dropdown option",
+                "puppeteer_hover": "Hover over element",
+                "puppeteer_evaluate": "Execute JavaScript (use sparingly!)",
+                "playwright_navigate": "Navigate to URL",
+                "playwright_screenshot": "Capture screenshot of current page",
+                "playwright_click": "Click element by selector",
+                "playwright_fill": "Fill form input by selector",
+                "playwright_type": "Type text into element"
+            }
+
+            for tool in browser_tools:
+                desc = tool_descriptions.get(tool, "Browser automation tool")
+                tools_doc += f"- `{tool}` - {desc}\n"
+
+            # Replace placeholder
+            prompt = prompt.replace("{{BROWSER_MCP_TOOLS}}", tools_doc.strip())
+        else:
+            # No browser tools configured - remove placeholder
+            fallback = """⚠️  No browser automation MCP configured.
+E2E testing will use project's existing test framework (npm run test:e2e, etc.)"""
+            prompt = prompt.replace("{{BROWSER_MCP_TOOLS}}", fallback)
+
         return prompt
     
     

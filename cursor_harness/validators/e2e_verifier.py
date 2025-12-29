@@ -46,7 +46,12 @@ class E2EVerifier:
 
     def verify(self, work_item: Optional[dict]) -> E2EVerificationResult:
         """
-        Verify E2E testing was performed for this work item.
+        Verify E2E testing was performed AND passed for this work item.
+
+        Checks:
+        1. Screenshots exist (proof E2E testing was performed)
+        2. test_results.json exists (proof of test results)
+        3. test_results.json shows all steps passed (iteration loop completed)
 
         Args:
             work_item: Feature from feature_list.json (or None if no work)
@@ -90,12 +95,77 @@ class E2EVerifier:
                 screenshot_count=0
             )
 
-        # Success: Screenshots exist = E2E testing was done
-        return E2EVerificationResult(
-            passed=True,
-            reason=f"E2E testing verified - found {len(screenshots)} screenshot(s)",
-            screenshot_count=len(screenshots)
-        )
+        # NEW: Check test_results.json exists and shows passing
+        test_results_file = self.verification_dir / "test_results.json"
+        if not test_results_file.exists():
+            return E2EVerificationResult(
+                passed=False,
+                reason="No test_results.json found - E2E test results not documented",
+                screenshot_count=len(screenshots)
+            )
+
+        # Verify test results show all steps passed
+        import json
+        try:
+            with open(test_results_file) as f:
+                test_results = json.load(f)
+
+            overall_status = test_results.get("overall_status", "")
+            if overall_status != "passed":
+                # Get failed steps for error message
+                failed_steps = []
+                for result in test_results.get("e2e_results", []):
+                    if result.get("status") != "passed":
+                        step_desc = result.get("step", "Unknown step")
+                        error = result.get("error", "No error details")
+                        failed_steps.append(f"{step_desc}: {error}")
+
+                failed_msg = "; ".join(failed_steps) if failed_steps else "See test_results.json"
+                return E2EVerificationResult(
+                    passed=False,
+                    reason=f"E2E tests FAILED - Agent must fix and re-test: {failed_msg}",
+                    screenshot_count=len(screenshots)
+                )
+
+            # Success: Screenshots exist AND all E2E tests passed
+            iteration = test_results.get("iteration", 1)
+            console_errors = test_results.get("console_errors", [])
+            visual_issues = test_results.get("visual_issues", [])
+
+            details = f"found {len(screenshots)} screenshot(s)"
+            if iteration > 1:
+                details += f", iteration {iteration}"
+            if console_errors:
+                return E2EVerificationResult(
+                    passed=False,
+                    reason=f"Console errors detected: {console_errors}",
+                    screenshot_count=len(screenshots)
+                )
+            if visual_issues:
+                return E2EVerificationResult(
+                    passed=False,
+                    reason=f"Visual issues detected: {visual_issues}",
+                    screenshot_count=len(screenshots)
+                )
+
+            return E2EVerificationResult(
+                passed=True,
+                reason=f"E2E testing verified - {details}, all tests passed",
+                screenshot_count=len(screenshots)
+            )
+
+        except json.JSONDecodeError:
+            return E2EVerificationResult(
+                passed=False,
+                reason="test_results.json is invalid JSON - fix formatting",
+                screenshot_count=len(screenshots)
+            )
+        except Exception as e:
+            return E2EVerificationResult(
+                passed=False,
+                reason=f"Error reading test_results.json: {e}",
+                screenshot_count=len(screenshots)
+            )
 
     def _is_user_facing(self, work_item: dict) -> bool:
         """

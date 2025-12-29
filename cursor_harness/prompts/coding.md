@@ -98,20 +98,57 @@ Follow TDD (Test-Driven Development):
 2. **Implement** - Write minimum code to make tests pass
 3. **Test manually** - Verify as a human user would
 
-**For web applications, use Puppeteer MCP for E2E testing:**
-- Navigate to the feature
-- Interact exactly as a user would
-- Take screenshots to verify UI
-- Check for visual bugs
+**For web applications, use browser automation MCP tools for E2E testing:**
+
+{{BROWSER_MCP_TOOLS}}
+
+**E2E Testing Requirements:**
+- Navigate to the feature using browser automation MCP tools
+- Interact exactly as a user would (clicks, form fills, keyboard input)
+- Take screenshots to verify UI at each step
+- Check for visual bugs (contrast, layout, colors)
 - Verify no console errors
 
-**Save screenshots to prove E2E testing (REQUIRED):**
+**Save screenshots AND test results (REQUIRED):**
 ```bash
 mkdir -p .cursor/verification
+
 # Save Puppeteer screenshots to .cursor/verification/
 # Name format: feature-001-step-1.png, feature-001-step-2.png, etc.
-# This proves E2E testing was performed
+
+# Create test_results.json proving ALL steps passed
+cat > .cursor/verification/test_results.json << 'EOF'
+{
+  "feature_index": 0,
+  "feature_description": "Feature description here",
+  "e2e_results": [
+    {
+      "step": "Step 1 description from feature_list.json",
+      "status": "passed",
+      "screenshot": "feature-001-step-1.png",
+      "notes": "Step completed successfully"
+    },
+    {
+      "step": "Step 2 description",
+      "status": "passed",
+      "screenshot": "feature-001-step-2.png",
+      "notes": "All assertions passed"
+    }
+  ],
+  "overall_status": "passed",
+  "console_errors": [],
+  "visual_issues": []
+}
+EOF
 ```
+
+**CRITICAL: If ANY step fails, you MUST:**
+1. Fix the issue in code
+2. Re-run E2E tests
+3. Update test_results.json
+4. Repeat until overall_status = "passed"
+
+**Do NOT mark feature as passing unless ALL E2E test steps show "passed"!**
 
 ## Step 7: Verify End-to-End
 
@@ -121,18 +158,37 @@ mkdir -p .cursor/verification
 - Verify no console errors were introduced
 - Ensure existing features still work after your changes
 
-**THEN: Verify new feature completely:**
+**THEN: Iterate until new feature passes completely:**
 
-The feature must work COMPLETELY before marking as passing:
+**The E2E testing iteration loop:**
+
+```
+WHILE any E2E step fails:
+  1. Run Puppeteer E2E tests for ALL steps
+  2. Analyze screenshots - look for visual bugs, console errors
+  3. IF all steps pass:
+       - Create test_results.json with overall_status: "passed"
+       - DONE - exit loop
+  4. ELSE (some steps failed):
+       - Identify which step failed and WHY
+       - Fix the issue in code
+       - Re-run E2E tests
+       - Update test_results.json
+       - Loop back to step 1
+END WHILE
+```
+
+**The feature must work COMPLETELY before marking as passing:**
 
 - ✅ All test steps from feature_list.json pass
 - ✅ Manual testing as a real user confirms it works
 - ✅ No visual bugs (contrast, layout, colors)
 - ✅ No console errors
 - ✅ Feature integrates properly with rest of app
-- ✅ Screenshots saved to .cursor/verification/
+- ✅ test_results.json shows overall_status: "passed"
+- ✅ Screenshots prove all steps work
 
-**Do not mark a feature as passing unless it truly works end-to-end.**
+**Do not mark a feature as passing unless test_results.json shows "passed"!**
 
 ## Step 8: Commit Your Work
 

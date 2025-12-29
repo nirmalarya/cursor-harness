@@ -72,7 +72,7 @@ Now you have just ONE feature to implement.
 **FIRST: Run regression tests (1-2 passing features):**
 ```bash
 # Verify existing functionality still works
-# Use Puppeteer MCP to test 1-2 passing features
+# {{BROWSER_MCP_TOOLS}}
 # Check for visual regressions (contrast, layout, overflow)
 # Verify no console errors introduced
 ```
