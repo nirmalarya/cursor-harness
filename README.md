@@ -69,26 +69,6 @@ cursor_harness/
     └── healer.py                # Infrastructure self-healing (~100 lines)
 ```
 
-**Total: ~1,100 lines** (simple, maintainable)
-
-## Development Plan
-
-### Week 1: Core (Days 1-3)
-- **Day 1:** Simple loop + feature_list.json
-- **Day 2:** All modes (greenfield, enhancement, backlog)
-- **Day 3:** Infrastructure self-healing
-
-### Week 2: Validation (Days 4-7)
-- **Day 4:** Puppeteer E2E testing
-- **Day 5:** Security scanning
-- **Day 6:** Quality gates
-- **Day 7:** Integration testing (Togglr, AutoGraph, AI Trading)
-
-### Week 3: Production (Days 8-10)
-- **Day 8:** Multi-agent (optional feature)
-- **Day 9:** Documentation
-- **Day 10:** Hardening & week-long test
-
 ## Why v3.0?
 
 ### v1.0 (autonomous-harness)
@@ -125,13 +105,4 @@ cursor-harness bugfix ./existing-app --issue "Fix login bug"
 cursor-harness backlog ./project --org MyOrg --project MyProject
 ```
 
-## Status
-
-**Current:** Day 1 - Building simple core
-
-**Next:** Test on simple project, then add modes
-
----
-
-**Built to solve real production problems, not just demos!** 🚀
 
