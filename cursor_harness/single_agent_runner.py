@@ -79,7 +79,7 @@ Create .{agent_name}_complete when YOUR tasks are done.
 """
     
     session = 0
-    loop_detector = LoopDetector(max_repeated_reads=3, session_timeout_minutes=60)
+    loop_detector = LoopDetector(max_repeated_reads=12, session_timeout_minutes=60)
     last_commit = get_latest_commit(project_dir)
     
     while session < max_sessions:

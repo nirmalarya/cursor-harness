@@ -18,6 +18,7 @@ from .azure_devops_integration import AzureDevOpsIntegration
 from .project_scaffolder import ProjectScaffolder
 from .browser_cleanup import setup_browser_cleanup, kill_orphaned_browsers
 from .infrastructure_validator import InfrastructureValidator
+from .retry_manager import RetryManager
 
 
 # Configuration
@@ -82,6 +83,10 @@ async def run_autonomous_agent(
     # Initialize security validator
     security_validator = SecurityValidator()
 
+    # Initialize retry manager
+    retry_manager = RetryManager(project_dir)
+    print(f"📊 Retry tracking initialized")
+
     # Check if this is a fresh start or continuation
     spec_dir = project_dir / "spec"
     feature_file = spec_dir / "feature_list.json"
@@ -120,12 +125,28 @@ async def run_autonomous_agent(
     iteration = 0
     session_number = 0
     is_initializer_phase = True
-    
+
+    # Track feature states before each session for retry logic
+    previous_feature_states = {}
+
     # cursor-agent handles MCPs automatically - we don't spawn them!
-    
+
     try:
         while True:
             iteration += 1
+
+            # Load current feature states before session
+            if feature_file.exists():
+                import json
+                try:
+                    with open(feature_file) as f:
+                        features = json.load(f)
+                    previous_feature_states = {
+                        f.get('id', f.get('name', '')): f.get('passes', False)
+                        for f in features
+                    }
+                except (json.JSONDecodeError, IOError):
+                    pass
 
             # Check max iterations
             if max_iterations and iteration > max_iterations:
@@ -176,6 +197,42 @@ async def run_autonomous_agent(
 
             # Run session
             status, response = await client.run_session(prompt)
+
+            # After session: Track retry attempts based on feature state changes
+            if feature_file.exists() and not is_first_run:
+                import json
+                try:
+                    with open(feature_file) as f:
+                        features = json.load(f)
+
+                    # Check which features changed state
+                    for feature in features:
+                        feature_id = feature.get('id', feature.get('name', ''))
+                        if not feature_id:
+                            continue
+
+                        current_passes = feature.get('passes', False)
+                        previous_passes = previous_feature_states.get(feature_id, False)
+
+                        # Feature was worked on (not passing before, still not passing now)
+                        # OR feature became passing (success!)
+                        if not previous_passes:
+                            if current_passes:
+                                # Feature succeeded! Reset retry count
+                                retry_manager.reset_feature(feature_id)
+                                print(f"   ✅ Feature '{feature_id}' passed - retry count reset")
+                            elif feature_id in previous_feature_states:
+                                # Feature was attempted but still not passing
+                                retry_manager.record_attempt(feature_id)
+                                attempts = retry_manager.get_attempts(feature_id)
+                                if not retry_manager.can_retry(feature_id):
+                                    print(f"   ⚠️  Feature '{feature_id}' exceeded max retries ({attempts}/{RetryManager.MAX_RETRIES})")
+                                    print(f"      Consider marking as 'skipped' or investigating why it's failing")
+                                elif attempts > 1:
+                                    print(f"   🔄 Feature '{feature_id}' retry attempt {attempts}/{RetryManager.MAX_RETRIES}")
+
+                except (json.JSONDecodeError, IOError):
+                    pass
 
             # Handle status
             if status == "complete":

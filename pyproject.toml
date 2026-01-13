@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cursor-harness"
-version = "2.3.0-dev"
+version = "2.4.0"
 description = "Autonomous coding harness with multi-agent workflow and Azure DevOps integration"
 readme = "README.md"
 requires-python = ">=3.10"

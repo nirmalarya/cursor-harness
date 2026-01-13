@@ -12,10 +12,33 @@ This file kept for reference/future Cursor CLI fixes.
 import json
 import os
 import subprocess
+import signal
+import atexit
+import weakref
 from pathlib import Path
 from typing import Optional, Tuple
 
 from .mcp_manager import MCPManager, create_mcp_manager_from_cursor_config
+
+# Global registry of active cursor-agent processes
+_active_processes: weakref.WeakSet = weakref.WeakSet()
+
+
+def _cleanup_all_processes():
+    """Called on program exit - cleanup all tracked processes."""
+    for proc in list(_active_processes):
+        if proc.poll() is None:  # Still running
+            try:
+                proc.terminate()  # Graceful shutdown first
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()  # Force kill only if needed
+            except Exception:
+                pass
+
+
+# Register cleanup on program exit
+atexit.register(_cleanup_all_processes)
 
 
 class CursorMCPClient:
@@ -29,12 +52,26 @@ class CursorMCPClient:
         self,
         project_dir: Path,
         model: str = "sonnet-4.5",
-        mcp_manager: Optional[MCPManager] = None
+        mcp_manager: Optional[MCPManager] = None,
+        loop_detector: Optional[Any] = None
     ):
         self.project_dir = project_dir
         self.model = model
         # Don't spawn MCPs ourselves! cursor-agent handles them automatically
         self.mcp_manager = None
+        self.loop_detector = loop_detector
+        self.process = None  # Will hold cursor-agent process
+
+        # Register signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
+
+    def _signal_handler(self, signum, frame):
+        """Handle interrupt signals gracefully."""
+        print(f"\n[Cursor Agent] Received signal {signum}, shutting down...")
+        self._cleanup_process()
+        import sys
+        sys.exit(0)
     
     async def run_session(self, prompt: str) -> Tuple[str, str]:
         """
@@ -80,6 +117,10 @@ class CursorMCPClient:
                 text=True,
                 bufsize=1,  # Line buffered
             )
+
+            # Track process for cleanup
+            self.process = process
+            _active_processes.add(process)
             
             # Parse and display streaming JSON events
             tool_count = 0
@@ -144,26 +185,52 @@ class CursorMCPClient:
             # Wait for completion
             returncode = process.wait(timeout=3600)
             result = type('obj', (object,), {'returncode': returncode})()
-            
+
             if result.returncode == 0:
                 print("\n✅ Session complete")
+                self._cleanup_process()
                 return "continue", ""
             else:
                 print(f"\n❌ Session failed (exit code: {result.returncode})")
+                self._cleanup_process()
                 return "error", ""
-        
+
         except subprocess.TimeoutExpired:
             print("❌ Session timed out (1 hour limit)")
+            self._cleanup_process()
             return "error", "Session timeout"
-        
+
         except FileNotFoundError:
             print("❌ Cursor CLI not found!")
             return "error", "Cursor CLI not found"
-        
+
         except Exception as e:
             print(f"❌ Error running session: {e}")
+            self._cleanup_process()
             return "error", str(e)
-    
+
+        finally:
+            # Ensure cleanup happens even on unexpected errors
+            self._cleanup_process()
+
+    def _cleanup_process(self):
+        """Clean up cursor-agent process."""
+        if self.process and self.process.poll() is None:
+            try:
+                # Try graceful shutdown first
+                self.process.terminate()
+                self.process.wait(timeout=5)
+                print("[Cursor Agent] Process terminated gracefully")
+            except subprocess.TimeoutExpired:
+                # Force kill only if graceful fails
+                self.process.kill()
+                self.process.wait()
+                print("[Cursor Agent] Process force-killed after timeout")
+            except Exception as e:
+                print(f"[Cursor Agent] Cleanup error: {e}")
+
+        self.process = None
+
     def _get_mcp_tools_list(self) -> str:
         """Get formatted list of available MCP tools."""
         tools_desc = []
@@ -206,8 +273,10 @@ class CursorMCPClient:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Stop MCP servers when exiting context."""
-        self.mcp_manager.stop_all()
+        """Stop MCP servers and cleanup cursor-agent process when exiting context."""
+        self._cleanup_process()
+        if self.mcp_manager:
+            self.mcp_manager.stop_all()
 
 
 def check_cursor_prerequisites() -> Tuple[bool, str]:
