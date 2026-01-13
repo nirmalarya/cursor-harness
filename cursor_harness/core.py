@@ -15,6 +15,8 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 
+from . import __version__
+
 
 @dataclass
 class WorkItem:
@@ -105,7 +107,7 @@ class CursorHarness:
         """
         
         print(f"\n{'='*60}")
-        print(f"🚀 cursor-harness v3.0")
+        print(f"🚀 cursor-harness v{__version__}")
         print(f"{'='*60}")
         print(f"Mode: {self.mode}")
         print(f"Project: {self.project_dir}")
