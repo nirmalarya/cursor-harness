@@ -13,7 +13,7 @@ from typing import Dict, Tuple
 class LoopDetector:
     """Detect when agent is stuck in a loop."""
     
-    def __init__(self, max_repeated_reads: int = 5, session_timeout_minutes: int = 60):
+    def __init__(self, max_repeated_reads: int = 12, session_timeout_minutes: int = 60):
         self.max_repeated_reads = max_repeated_reads
         self.session_timeout = session_timeout_minutes * 60
         
