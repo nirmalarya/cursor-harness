@@ -78,24 +78,29 @@ def check_cursor_agent_authenticated() -> bool:
         True if authenticated, False otherwise
     """
     try:
-        # Try to run a simple command that requires auth
+        # Try to run a command that actually requires authentication
+        # Use -p with a simple prompt to test if auth works
         result = subprocess.run(
-            ["cursor-agent", "mcp", "list"],
+            ["cursor-agent", "-p", "echo test"],
             capture_output=True,
             timeout=10,
-            text=True
+            text=True,
+            input="test\n"  # Provide minimal input
         )
-
-        # If it works without auth error, we're authenticated
-        if result.returncode == 0:
-            return True
 
         # Check for authentication error in output
         error_output = result.stderr + result.stdout
-        if "Authentication required" in error_output or "login" in error_output.lower():
+
+        if "Authentication required" in error_output:
             return False
 
-        # Other error, might still be authenticated
+        if "login" in error_output.lower() and "required" in error_output.lower():
+            return False
+
+        if "CURSOR_API_KEY" in error_output and "required" in error_output.lower():
+            return False
+
+        # If no auth error, we're authenticated
         return True
 
     except (FileNotFoundError, subprocess.TimeoutExpired):
