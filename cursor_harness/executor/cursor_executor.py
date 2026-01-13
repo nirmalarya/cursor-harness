@@ -48,23 +48,21 @@ signal.signal(signal.SIGTERM, _signal_handler)
 
 class CursorExecutor:
     """Execute sessions using cursor-agent CLI."""
-    
+
     def __init__(self, project_dir: Path, loop_detector=None, model: str = "sonnet-4.5"):
         self.project_dir = project_dir
         self.loop_detector = loop_detector
         self.model = model
-        
-        # Verify cursor-agent exists
-        try:
-            subprocess.run(
-                ["cursor-agent", "--version"],
-                capture_output=True,
-                timeout=5,
-                check=True
+
+        # Automatic cursor-agent setup (v3.2.1+)
+        from ..cursor_setup import ensure_cursor_agent_ready
+
+        if not ensure_cursor_agent_ready():
+            raise ValueError(
+                "cursor-agent setup failed. Please install and authenticate manually:\n"
+                "  npm install -g @cursor/agent\n"
+                "  cursor-agent login"
             )
-            print("   ✅ cursor-agent found")
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            raise ValueError("cursor-agent not found! Login to Cursor IDE")
     
     def execute(self, prompt: str, timeout_seconds: int = 3600) -> bool:
         """Execute a session using cursor-agent."""

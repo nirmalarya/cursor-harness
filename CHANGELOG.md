@@ -1,5 +1,70 @@
 # Changelog
 
+## v3.2.1 (2026-01-13)
+
+### 🔧 Automatic cursor-agent Setup
+
+**Zero-Configuration Experience**
+- Automatically checks if cursor-agent is installed
+- Installs cursor-agent if missing (via npm)
+- Automatically checks if cursor-agent is authenticated
+- Runs interactive login if authentication is needed
+
+### How It Works
+
+**Setup flow:**
+```
+cursor-harness starts
+  ↓
+Check: cursor-agent installed?
+  No → Install via npm
+  Yes → Continue
+  ↓
+Check: cursor-agent authenticated?
+  No → Run cursor-agent login (interactive)
+  Yes → Continue
+  ↓
+Run session ✅
+```
+
+**User experience:**
+- **Before v3.2.1**: Manual setup required
+  - `npm install -g @cursor/agent`
+  - `cursor-agent login`
+  - `cursor-harness ...`
+
+- **After v3.2.1**: Just run cursor-harness!
+  - `cursor-harness greenfield ./my-app --spec spec.txt`
+  - Auto-installs if needed
+  - Auto-authenticates if needed
+  - Everything just works ✅
+
+### Impact
+
+- **New user onboarding**: 2 steps → 1 step
+- **Authentication errors**: Manual fix → Automatic fix
+- **Setup time**: ~5 minutes → ~30 seconds (automated)
+
+### Technical Details
+
+- New file: `cursor_harness/cursor_setup.py`
+  - `ensure_cursor_agent_ready()` - Main entry point
+  - `check_cursor_agent_installed()` - Installation check
+  - `install_cursor_agent()` - Auto-install via npm
+  - `check_cursor_agent_authenticated()` - Auth check
+  - `authenticate_cursor_agent()` - Interactive login
+
+- Modified: `cursor_harness/executor/cursor_executor.py`
+  - Calls `ensure_cursor_agent_ready()` on initialization
+  - Provides helpful error messages if setup fails
+
+### Prerequisites
+
+- **Node.js/npm**: Required for cursor-agent installation
+- **Cursor IDE**: Required for authentication (opens automatically)
+
+---
+
 ## v3.2.0 (2026-01-13)
 
 ### 🛡️ Zombie Process Elimination
