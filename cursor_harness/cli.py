@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='cursor-harness v3.0 - Simple, reliable autonomous coding'
     )
-    parser.add_argument('--version', action='version', version='cursor-harness v3.0.5')
+    parser.add_argument('--version', action='version', version='cursor-harness v3.2.0')
     
     subparsers = parser.add_subparsers(dest='mode', help='Mode')
     
