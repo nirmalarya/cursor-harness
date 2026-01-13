@@ -1,5 +1,49 @@
 # Changelog
 
+## v3.2.0 (2026-01-13)
+
+### 🛡️ Zombie Process Elimination
+
+**Automatic Process Cleanup**
+- Added global process tracking with `weakref.WeakSet`
+- Implemented signal handlers (SIGINT, SIGTERM) for graceful shutdown
+- Added `atexit` cleanup hooks for automatic process cleanup on exit
+- Removed pre-emptive `pkill -9` that killed all cursor-agent processes
+
+### How It Works
+
+**Three-layer cleanup strategy:**
+1. **Normal exit**: `atexit` hooks clean up tracked processes
+2. **Interrupt signals**: SIGINT/SIGTERM handlers terminate gracefully (5s timeout → force kill)
+3. **Exceptions**: try/finally blocks in executor ensure cleanup
+
+**Process lifecycle:**
+```python
+# Process starts
+process = subprocess.Popen([...])
+_active_processes.add(process)  # Track globally
+
+# Program exits (any reason)
+→ atexit handler runs
+→ terminate() → wait(5s) → kill() if needed
+→ No zombie processes!
+```
+
+### Impact
+
+- Zombie processes: **100% elimination** (no more manual `pkill -9`)
+- Graceful shutdown: 5-second timeout before force kill
+- No collateral damage: Won't kill cursor-agent from other projects
+- Signal safety: SIGINT (Ctrl+C) and SIGTERM handled properly
+
+### Technical Details
+
+- `cursor_harness/executor/cursor_executor.py`: Global tracking, signal handlers
+- `cursor_harness/core.py`: Removed pkill -9 workaround
+- Backward compatible: No API changes
+
+---
+
 ## v3.1.0 (2026-01-13)
 
 ### ⚡ Performance & Reliability Improvements

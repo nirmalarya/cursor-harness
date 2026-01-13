@@ -191,26 +191,13 @@ class CursorHarness:
         """One-time setup before main loop."""
         print("🔧 Setup...")
 
-        # 0. Kill any zombie cursor-agent processes from previous crashes
-        # This prevents tool_use_id mismatch errors from interrupted sessions
-        try:
-            # cursor-agent runs as a Node.js process, so match the command line
-            result = subprocess.run(
-                ["pkill", "-9", "-f", "cursor-agent.*index.js"],
-                capture_output=True,
-                timeout=2
-            )
-            if result.returncode == 0:
-                print("   🧹 Cleaned up zombie cursor-agent processes")
-            # Also try exact name match as fallback
-            subprocess.run(
-                ["pkill", "-9", "cursor-agent"],
-                capture_output=True,
-                timeout=2
-            )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            # pkill not available or timeout - non-critical
-            pass
+        # 0. Automatic process cleanup (v3.2.0+)
+        # cursor-agent processes are now tracked globally and cleaned up automatically:
+        # - On normal program exit (atexit)
+        # - On interrupt signals (SIGINT, SIGTERM)
+        # - On exceptions (try/finally in executor)
+        # No more manual pkill -9 needed!
+        print("   ✅ Automatic process cleanup enabled")
 
         # 1. Validate project directory
         if not self.project_dir.exists():

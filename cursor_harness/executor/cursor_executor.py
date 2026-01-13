@@ -8,7 +8,42 @@ Reference: https://cursor.com/docs/cli/using
 import subprocess
 import tempfile
 import json
+import signal
+import atexit
+import weakref
 from pathlib import Path
+
+# Global registry of active cursor-agent processes
+_active_processes: weakref.WeakSet = weakref.WeakSet()
+
+
+def _cleanup_all_processes():
+    """Called on program exit - cleanup all tracked processes."""
+    for proc in list(_active_processes):
+        if proc.poll() is None:  # Still running
+            try:
+                proc.terminate()  # Graceful shutdown first
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()  # Force kill only if needed
+            except Exception:
+                pass
+
+
+def _signal_handler(signum, frame):
+    """Handle interrupt signals gracefully."""
+    print(f"\n🛑 Received signal {signum}, cleaning up cursor-agent processes...")
+    _cleanup_all_processes()
+    import sys
+    sys.exit(0)
+
+
+# Register cleanup on program exit
+atexit.register(_cleanup_all_processes)
+
+# Register signal handlers for graceful shutdown
+signal.signal(signal.SIGINT, _signal_handler)
+signal.signal(signal.SIGTERM, _signal_handler)
 
 
 class CursorExecutor:
@@ -68,6 +103,9 @@ class CursorExecutor:
                 stderr=subprocess.PIPE,
                 text=True
             )
+
+            # Track process for global cleanup
+            _active_processes.add(process)
 
             # Write prompt to stdin
             process.stdin.write(prompt_text)
