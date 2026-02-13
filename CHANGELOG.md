@@ -4,6 +4,36 @@
 
 ### 🧠 Intelligence Layer
 
+**Session Analytics Dashboard (#27)**
+- Cross-session analytics aggregation
+- High-level summary metrics
+- Operation trends and performance tracking
+- Error analysis and patterns
+- Recovery effectiveness metrics
+- Checkpoint statistics
+- JSON report export
+
+**Metrics Tracked:**
+- Total sessions, duration, success rate
+- Error counts by type and session
+- Recovery actions and success rates
+- Top operations by total time
+- Performance trends (improving/declining/stable)
+- Checkpoint success rates
+
+**API:**
+- `get_summary()` - overall analytics
+- `get_operation_trends(name)` - track specific operation
+- `get_error_analysis()` - error patterns
+- `get_recovery_effectiveness()` - recovery metrics
+- `export_report(path)` - JSON export
+
+**Use Cases:**
+- Identify performance bottlenecks across sessions
+- Track improvement over time
+- Detect error patterns
+- Evaluate recovery strategies
+
 **Performance Profiling (#26)**
 - Session-level performance instrumentation
 - Operation timing with context manager API
