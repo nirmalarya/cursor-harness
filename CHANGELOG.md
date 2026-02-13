@@ -4,6 +4,31 @@
 
 ### 🧠 Intelligence Layer
 
+**Feature Dependency Graph (#21)**
+- Build and maintain task dependency graph
+- Topological sorting for correct execution order
+- Automatic blocker detection
+- Ready-task identification (no blockers)
+- Dependency inference from task descriptions
+- Mermaid diagram visualization
+- Persistent graph across sessions
+
+**How It Works:**
+1. Tasks added with explicit dependencies
+2. Graph tracks completion state
+3. Blocked tasks identified automatically
+4. Get ready tasks (no blockers) for next iteration
+5. Topological order ensures dependencies execute first
+
+**CLI Integration:**
+Harness can use graph to:
+- Order work items correctly
+- Skip blocked tasks
+- Show dependency visualization
+
+**Storage:**
+Graph stored in `.cursor/dependencies/graph.json`
+
 **Git Checkpointing / Rollback (#22)**
 - Auto-commit after successful verification passes
 - Checkpoint commits tagged with session metadata (iteration, verification status)
