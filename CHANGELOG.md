@@ -4,6 +4,30 @@
 
 ### 🧠 Intelligence Layer
 
+**Canary Sessions (#23)**
+- Parallel testing framework for experimental changes
+- Run same task in control (stable) vs canary (experimental) branches
+- Automatic output comparison and diff scoring
+- Regression detection (new errors, slowdowns, output changes)
+- Git worktree isolation for parallel execution
+- Pass/fail metrics and statistics tracking
+
+**How It Works:**
+1. Create isolated workspaces for control & canary branches
+2. Execute same task in both environments
+3. Compare outputs using sequence matching (diff score)
+4. Detect regressions: new errors, >2x slowdown, >70% diff
+5. Auto-validate changes before merging
+
+**Use Cases:**
+- Test prompt changes before deploying
+- Validate model upgrades
+- A/B test different strategies
+- Catch regressions early
+
+**Storage:**
+Results in `.cursor/canary/results.json`
+
 **Feature Dependency Graph (#21)**
 - Build and maintain task dependency graph
 - Topological sorting for correct execution order
