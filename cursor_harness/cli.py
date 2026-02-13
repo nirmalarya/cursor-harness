@@ -21,6 +21,10 @@ def main():
     greenfield.add_argument('--spec', type=Path, help='Specification file')
     greenfield.add_argument('--timeout', type=int, default=480, help='Timeout in minutes')
     greenfield.add_argument('--model', type=str, default='sonnet-4.5', help='Model: sonnet-4.5, opus-4.5, gpt-5, composer-1')
+    greenfield.add_argument('--no-verification', action='store_true', help='Disable verification pipeline')
+    greenfield.add_argument('--no-git-analysis', action='store_true', help='Disable git diff analysis')
+    greenfield.add_argument('--enable-lint', action='store_true', help='Enable lint checks (opt-in)')
+    greenfield.add_argument('--adaptive-prompting-patterns', type=int, default=5, help='Max learned patterns to inject (default: 5, 0=disable)')
     
     # Enhancement
     enhance = subparsers.add_parser('enhance', help='Add features to existing project')
@@ -28,6 +32,10 @@ def main():
     enhance.add_argument('--spec', type=Path, required=True, help='Enhancement spec')
     enhance.add_argument('--timeout', type=int, default=480, help='Timeout in minutes')
     enhance.add_argument('--model', type=str, default='sonnet-4.5', help='Model: sonnet-4.5, opus-4.5, gpt-5, composer-1')
+    enhance.add_argument('--no-verification', action='store_true', help='Disable verification pipeline')
+    enhance.add_argument('--no-git-analysis', action='store_true', help='Disable git diff analysis')
+    enhance.add_argument('--enable-lint', action='store_true', help='Enable lint checks (opt-in)')
+    enhance.add_argument('--adaptive-prompting-patterns', type=int, default=5, help='Max learned patterns to inject (default: 5, 0=disable)')
     
     # Backlog
     backlog = subparsers.add_parser('backlog', help='Process Azure DevOps backlog')
@@ -36,6 +44,10 @@ def main():
     backlog.add_argument('--project', required=True, help='Azure DevOps project')
     backlog.add_argument('--timeout', type=int, default=1440, help='Timeout in minutes')
     backlog.add_argument('--model', type=str, default='sonnet-4.5', help='Model: sonnet-4.5, opus-4.5, gpt-5, composer-1')
+    backlog.add_argument('--no-verification', action='store_true', help='Disable verification pipeline')
+    backlog.add_argument('--no-git-analysis', action='store_true', help='Disable git diff analysis')
+    backlog.add_argument('--enable-lint', action='store_true', help='Enable lint checks (opt-in)')
+    backlog.add_argument('--adaptive-prompting-patterns', type=int, default=5, help='Max learned patterns to inject (default: 5, 0=disable)')
     
     args = parser.parse_args()
     
@@ -49,7 +61,11 @@ def main():
         mode=args.mode,
         spec_file=getattr(args, 'spec', None),
         timeout_minutes=args.timeout,
-        model=getattr(args, 'model', 'claude-sonnet-4')
+        model=getattr(args, 'model', 'claude-sonnet-4'),
+        enable_verification=not getattr(args, 'no_verification', False),
+        enable_git_analysis=not getattr(args, 'no_git_analysis', False),
+        enable_lint=getattr(args, 'enable_lint', False),
+        adaptive_prompting_max_patterns=getattr(args, 'adaptive_prompting_patterns', 5)
     )
     
     # Pass Azure DevOps info for backlog mode

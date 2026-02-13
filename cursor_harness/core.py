@@ -63,7 +63,12 @@ class CursorHarness:
         mode: str,
         spec_file: Optional[Path] = None,
         timeout_minutes: int = 60,
-        model: str = "sonnet-4.5"
+        model: str = "sonnet-4.5",
+        enable_verification: bool = True,
+        enable_git_analysis: bool = True,
+        enable_tests: bool = True,
+        enable_lint: bool = False,
+        adaptive_prompting_max_patterns: int = 5
     ):
         self.project_dir = Path(project_dir).resolve()
         self.mode = mode  # greenfield, enhancement, bugfix, backlog
@@ -85,6 +90,30 @@ class CursorHarness:
         import hashlib
         session_str = f"{project_dir}_{mode}_{self.start_time}"
         self.session_id = hashlib.md5(session_str.encode()).hexdigest()[:16]
+        
+        # Verification pipeline (v5.0.0+)
+        self.enable_verification = enable_verification
+        self.verification_pipeline = None
+        if enable_verification:
+            from .verification import VerificationPipeline
+            self.verification_pipeline = VerificationPipeline(
+                project_dir=project_dir,
+                enable_git_analysis=enable_git_analysis,
+                enable_tests=enable_tests,
+                enable_lint=enable_lint
+            )
+        
+        # Adaptive prompting (v5.0.0+)
+        self.enable_adaptive_prompting = enable_verification and adaptive_prompting_max_patterns > 0
+        self.adaptive_prompter = None
+        if self.enable_adaptive_prompting:
+            from .intelligence import AdaptivePrompter
+            self.adaptive_prompter = AdaptivePrompter(
+                project_dir=project_dir,
+                enabled=True,
+                max_patterns=adaptive_prompting_max_patterns,
+                min_relevance=0.3
+            )
         
         # Checkpoint manager (v5.0.0+)
         self.checkpoint_manager = None
@@ -358,7 +387,7 @@ class CursorHarness:
         return self._execute_session(prompt, "initializer")
     
     def _run_coding_session(self) -> bool:
-        """Run a coding session (Anthropic's pattern + E2E verification)."""
+        """Run a coding session (Anthropic's pattern + verification)."""
 
         # Get current work item for E2E verification
         work_item = self._get_current_work_item()
@@ -369,6 +398,77 @@ class CursorHarness:
 
         if not success:
             return False
+
+        # Git-based verification pipeline (v5.0.0+)
+        if self.verification_pipeline:
+            print(f"\n   🔍 Running verification...")
+            
+            verification_result = self.verification_pipeline.verify()
+            
+            if not verification_result.passed:
+                print(f"   ⚠️  Verification failed ({verification_result.duration:.1f}s)")
+                
+                # Show warnings
+                for warning in verification_result.warnings:
+                    location = f"{warning.file}:{warning.line}" if warning.line else warning.file
+                    print(f"      [{warning.severity.upper()}] {location}: {warning.message}")
+                
+                # Record error pattern for learning (v5.0.0+)
+                pattern_id = None
+                if self.adaptive_prompter:
+                    error_type = "verification_failure"
+                    error_msg = verification_result.to_prompt()
+                    files = verification_result.git_analysis.get('changed_files', [])
+                    pattern_id = self.adaptive_prompter.record_error(
+                        error_type=error_type,
+                        error_message=error_msg,
+                        files_affected=files
+                    )
+                
+                # Self-correction: Give LLM one chance to fix
+                print(f"\n   🔄 Attempting self-correction...")
+                correction_prompt = self._build_correction_prompt(verification_result)
+                correction_success = self._execute_session(correction_prompt, "correction")
+                
+                if not correction_success:
+                    print(f"   ❌ Self-correction failed")
+                    # Record failed resolution
+                    if pattern_id and self.adaptive_prompter:
+                        self.adaptive_prompter.record_resolution(
+                            pattern_id=pattern_id,
+                            success=False,
+                            fix_description="Self-correction attempt failed"
+                        )
+                    return False
+                
+                # Re-verify after correction
+                print(f"\n   🔍 Re-verifying...")
+                re_verification = self.verification_pipeline.verify()
+                
+                if not re_verification.passed:
+                    print(f"   ❌ Still failing after correction")
+                    # Record failed resolution
+                    if pattern_id and self.adaptive_prompter:
+                        self.adaptive_prompter.record_resolution(
+                            pattern_id=pattern_id,
+                            success=False,
+                            fix_description="Self-correction did not resolve issue"
+                        )
+                    return False
+                else:
+                    print(f"   ✅ Verification passed after correction")
+                    # Record successful resolution
+                    if pattern_id and self.adaptive_prompter:
+                        self.adaptive_prompter.record_resolution(
+                            pattern_id=pattern_id,
+                            success=True,
+                            fix_description="Self-correction successfully resolved verification issues"
+                        )
+
+            else:
+                print(f"   ✅ Verification passed ({verification_result.duration:.1f}s)")
+                if verification_result.git_analysis.get('changed_files'):
+                    print(f"      Modified: {len(verification_result.git_analysis['changed_files'])} file(s)")
 
         # Production enhancement: Verify E2E testing was done
         # Only for user-facing modes (greenfield, enhancement)
@@ -467,6 +567,11 @@ class CursorHarness:
         if self.is_first_session and self.spec_file and self.spec_file.exists():
             spec_content = self.spec_file.read_text()
             prompt = f"{prompt}\n\n---\n\n## Project Specification\n\n{spec_content}"
+        
+        # Adaptive prompting: inject learned patterns (v5.0.0+)
+        if self.adaptive_prompter and not self.is_first_session:
+            # Don't inject on initializer - only on coding sessions
+            prompt = self.adaptive_prompter.augment_prompt(prompt)
 
         return prompt
 
@@ -518,6 +623,46 @@ E2E testing will use project's existing test framework (npm run test:e2e, etc.)"
             prompt = prompt.replace("{{BROWSER_MCP_TOOLS}}", fallback)
 
         return prompt
+    
+    def _build_correction_prompt(self, verification_result) -> str:
+        """
+        Build prompt for LLM self-correction based on verification failures.
+        
+        Args:
+            verification_result: VerificationResult with failure details
+        
+        Returns:
+            Prompt for correction session
+        """
+        correction_prompt = f"""# Self-Correction Required
+
+The previous changes failed verification. Please review and fix the issues below.
+
+{verification_result.to_prompt()}
+
+## Instructions
+
+1. **Review the issues** listed above carefully
+2. **Fix each issue** according to the suggestions provided
+3. **Verify your changes** by checking:
+   - Git diff makes sense
+   - Tests pass (if applicable)
+   - No sensitive data exposed
+4. **Commit your fixes** with a clear message
+
+Focus ONLY on fixing the verification issues. Do not make unrelated changes.
+
+## Current State
+
+Read the following to understand what needs fixing:
+- cursor-progress.txt (current task context)
+- feature_list.json (overall progress)
+- Git diff (what changed)
+
+Then make the necessary corrections.
+"""
+        
+        return correction_prompt
     
     
     def _final_validation(self) -> bool:

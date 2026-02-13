@@ -1,5 +1,49 @@
 # Changelog
 
+## v5.0.0-alpha (2026-02-13)
+
+### 🧠 Intelligence Layer
+
+**Adaptive Prompting from Failure Patterns (#20)**
+- Cross-session learning: harness learns from errors and successful fixes
+- Pattern database stores error signatures, resolutions, and success rates
+- Automatic pattern injection into system prompts (relevant patterns only)
+- Pattern matching with normalization (removes timestamps, line numbers, paths)
+- Time-based relevance decay (10% per day by default)
+- CLI flag: `--adaptive-prompting-patterns N` (default: 5, 0=disable)
+
+**How It Works:**
+1. Verification failures are recorded with error signature
+2. Self-correction attempts are tracked (success/failure)
+3. Next session: relevant patterns injected into system prompt
+4. LLM learns from past mistakes and proven solutions
+
+**Storage:**
+Patterns stored in `.cursor/intelligence/patterns.json` per project.
+
+**Git-Based Verification Pipeline (#19)**
+- Automatic verification after each coding iteration
+- Git diff analysis: detects unintended changes, large deletions, binary files
+- Sensitive pattern detection (passwords, API keys, secrets)
+- Auto-runs tests if test framework detected (pytest, npm test)
+- Self-correction: LLM gets one chance to fix verification failures
+- CLI flags: `--no-verification`, `--no-git-analysis`, `--enable-lint`
+
+**What This Means:**
+The harness now catches errors BEFORE they accumulate. If tests fail or dangerous patterns are detected, the LLM automatically attempts to fix them before proceeding to the next feature.
+
+**Usage:**
+```bash
+# Default: verification enabled
+cursor-harness greenfield ./my-app --spec spec.txt
+
+# Disable for debugging
+cursor-harness greenfield ./my-app --spec spec.txt --no-verification
+
+# Enable lint checks (opt-in)
+cursor-harness greenfield ./my-app --spec spec.txt --enable-lint
+```
+
 ## v3.2.1 (2026-01-13)
 
 ### 🔧 Automatic cursor-agent Setup
