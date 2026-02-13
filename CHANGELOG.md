@@ -4,6 +4,35 @@
 
 ### 🧠 Intelligence Layer
 
+**Auto-Recovery Strategies (#25)**
+- Automatic failure detection and recovery
+- Escalating recovery strategies based on failure patterns
+- 8 built-in recovery strategies
+- Custom strategy handler registration
+- State tracking (consecutive failures, retry count, last success)
+- Action history with success/failure tracking
+
+**Recovery Strategies:**
+1. **Checkpoint Rollback** - restore last known-good state
+2. **Reduce Scope** - break task into smaller pieces
+3. **Simplify Task** - remove optional requirements
+4. **Retry with Backoff** - exponential backoff retry
+5. **Skip and Continue** - skip non-critical failures
+6. **Fallback Model** - switch to simpler/reliable model
+7. **Reduce Context** - trim context to fit limits
+8. **Break into Subtasks** - decompose complex tasks
+
+**Escalation Logic:**
+- Verification failures: retry → simplify → rollback
+- Timeouts: retry → reduce scope
+- Loops: break into subtasks
+- Context overflow: reduce context
+- Model errors: retry → fallback model
+
+**Storage:**
+- Actions: `.cursor/recovery/actions.json`
+- State: `.cursor/recovery/state.json`
+
 **Telemetry → Action Loop (#24)**
 - Real-time telemetry collection during sessions
 - Pattern detection and automated action triggers
