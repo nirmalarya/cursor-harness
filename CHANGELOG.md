@@ -1,5 +1,32 @@
 # Changelog
 
+## v5.0.0-alpha (2026-02-13)
+
+### 🧠 Intelligence Layer
+
+**Git-Based Verification Pipeline (#19)**
+- Automatic verification after each coding iteration
+- Git diff analysis: detects unintended changes, large deletions, binary files
+- Sensitive pattern detection (passwords, API keys, secrets)
+- Auto-runs tests if test framework detected (pytest, npm test)
+- Self-correction: LLM gets one chance to fix verification failures
+- CLI flags: `--no-verification`, `--no-git-analysis`, `--enable-lint`
+
+**What This Means:**
+The harness now catches errors BEFORE they accumulate. If tests fail or dangerous patterns are detected, the LLM automatically attempts to fix them before proceeding to the next feature.
+
+**Usage:**
+```bash
+# Default: verification enabled
+cursor-harness greenfield ./my-app --spec spec.txt
+
+# Disable for debugging
+cursor-harness greenfield ./my-app --spec spec.txt --no-verification
+
+# Enable lint checks (opt-in)
+cursor-harness greenfield ./my-app --spec spec.txt --enable-lint
+```
+
 ## v3.2.1 (2026-01-13)
 
 ### 🔧 Automatic cursor-agent Setup
