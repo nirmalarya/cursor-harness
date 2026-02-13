@@ -4,6 +4,30 @@
 
 ### 🧠 Intelligence Layer
 
+**Telemetry → Action Loop (#24)**
+- Real-time telemetry collection during sessions
+- Pattern detection and automated action triggers
+- Extensible action handler system
+- Built-in corrective actions for common issues
+- Event persistence (JSONL format)
+- Trigger deduplication (1 hour cooldown)
+
+**Event Types:**
+- error, verification, performance, token_warning
+
+**Auto-Triggered Actions:**
+- High error rate (>10/50 events) → suggest reduce complexity
+- 3 consecutive verification failures → suggest rollback
+- Slow iterations (>5min avg) → suggest optimize prompts
+- Frequent token warnings → suggest reduce context
+
+**Custom Actions:**
+Register handlers via `loop.register_action_handler(type, handler)`
+
+**Storage:**
+- Events: `.cursor/telemetry/events.jsonl`
+- Triggers: `.cursor/telemetry/triggers.json`
+
 **Canary Sessions (#23)**
 - Parallel testing framework for experimental changes
 - Run same task in control (stable) vs canary (experimental) branches

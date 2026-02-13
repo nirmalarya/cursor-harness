@@ -13,5 +13,6 @@ from .pattern_db import PatternDatabase, ErrorPattern
 from .adaptive_prompter import AdaptivePrompter
 from .dependency_graph import DependencyGraph, TaskNode
 from .canary_session import CanarySession, CanaryResult
+from .telemetry_loop import TelemetryLoop, TelemetryEvent, ActionTrigger
 
-__all__ = ['PatternDatabase', 'ErrorPattern', 'AdaptivePrompter', 'DependencyGraph', 'TaskNode', 'CanarySession', 'CanaryResult']
+__all__ = ['PatternDatabase', 'ErrorPattern', 'AdaptivePrompter', 'DependencyGraph', 'TaskNode', 'CanarySession', 'CanaryResult', 'TelemetryLoop', 'TelemetryEvent', 'ActionTrigger']
