@@ -4,6 +4,29 @@
 
 ### 🧠 Intelligence Layer
 
+**Performance Profiling (#26)**
+- Session-level performance instrumentation
+- Operation timing with context manager API
+- Automatic summary statistics computation
+- Slowest operation tracking
+- Session comparison tooling
+- Persistent profile storage
+
+**API:**
+- `with profiler.measure("operation", **meta):` - context manager
+- `profiler.start_metric(name)` / `stop_metric(key)` - manual timing
+- `profiler.record_point(name, value)` - point-in-time metrics
+- `profiler.get_slowest_operations(limit)` - performance bottlenecks
+- `PerformanceProfiler.compare_sessions(id1, id2)` - A/B comparison
+
+**Summary Stats:**
+- Operation count, total, avg, min, max duration
+- Session total duration and metric count
+- Per-operation breakdowns
+
+**Storage:**
+Profiles in `.cursor/profiling/{session_id}.json`
+
 **Auto-Recovery Strategies (#25)**
 - Automatic failure detection and recovery
 - Escalating recovery strategies based on failure patterns
