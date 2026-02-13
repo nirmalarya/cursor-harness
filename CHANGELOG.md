@@ -4,6 +4,23 @@
 
 ### 🧠 Intelligence Layer
 
+**Adaptive Prompting from Failure Patterns (#20)**
+- Cross-session learning: harness learns from errors and successful fixes
+- Pattern database stores error signatures, resolutions, and success rates
+- Automatic pattern injection into system prompts (relevant patterns only)
+- Pattern matching with normalization (removes timestamps, line numbers, paths)
+- Time-based relevance decay (10% per day by default)
+- CLI flag: `--adaptive-prompting-patterns N` (default: 5, 0=disable)
+
+**How It Works:**
+1. Verification failures are recorded with error signature
+2. Self-correction attempts are tracked (success/failure)
+3. Next session: relevant patterns injected into system prompt
+4. LLM learns from past mistakes and proven solutions
+
+**Storage:**
+Patterns stored in `.cursor/intelligence/patterns.json` per project.
+
 **Git-Based Verification Pipeline (#19)**
 - Automatic verification after each coding iteration
 - Git diff analysis: detects unintended changes, large deletions, binary files

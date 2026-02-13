@@ -67,7 +67,8 @@ class CursorHarness:
         enable_verification: bool = True,
         enable_git_analysis: bool = True,
         enable_tests: bool = True,
-        enable_lint: bool = False
+        enable_lint: bool = False,
+        adaptive_prompting_max_patterns: int = 5
     ):
         self.project_dir = Path(project_dir).resolve()
         self.mode = mode  # greenfield, enhancement, bugfix, backlog
@@ -94,6 +95,18 @@ class CursorHarness:
                 enable_git_analysis=enable_git_analysis,
                 enable_tests=enable_tests,
                 enable_lint=enable_lint
+            )
+        
+        # Adaptive prompting (v5.0.0+)
+        self.enable_adaptive_prompting = enable_verification and adaptive_prompting_max_patterns > 0
+        self.adaptive_prompter = None
+        if self.enable_adaptive_prompting:
+            from .intelligence import AdaptivePrompter
+            self.adaptive_prompter = AdaptivePrompter(
+                project_dir=project_dir,
+                enabled=True,
+                max_patterns=adaptive_prompting_max_patterns,
+                min_relevance=0.3
             )
     
         # Track if this is first session (initializer) or coding session
@@ -385,6 +398,18 @@ class CursorHarness:
                     location = f"{warning.file}:{warning.line}" if warning.line else warning.file
                     print(f"      [{warning.severity.upper()}] {location}: {warning.message}")
                 
+                # Record error pattern for learning (v5.0.0+)
+                pattern_id = None
+                if self.adaptive_prompter:
+                    error_type = "verification_failure"
+                    error_msg = verification_result.to_prompt()
+                    files = verification_result.git_analysis.get('changed_files', [])
+                    pattern_id = self.adaptive_prompter.record_error(
+                        error_type=error_type,
+                        error_message=error_msg,
+                        files_affected=files
+                    )
+                
                 # Self-correction: Give LLM one chance to fix
                 print(f"\n   🔄 Attempting self-correction...")
                 correction_prompt = self._build_correction_prompt(verification_result)
@@ -392,6 +417,13 @@ class CursorHarness:
                 
                 if not correction_success:
                     print(f"   ❌ Self-correction failed")
+                    # Record failed resolution
+                    if pattern_id and self.adaptive_prompter:
+                        self.adaptive_prompter.record_resolution(
+                            pattern_id=pattern_id,
+                            success=False,
+                            fix_description="Self-correction attempt failed"
+                        )
                     return False
                 
                 # Re-verify after correction
@@ -400,9 +432,24 @@ class CursorHarness:
                 
                 if not re_verification.passed:
                     print(f"   ❌ Still failing after correction")
+                    # Record failed resolution
+                    if pattern_id and self.adaptive_prompter:
+                        self.adaptive_prompter.record_resolution(
+                            pattern_id=pattern_id,
+                            success=False,
+                            fix_description="Self-correction did not resolve issue"
+                        )
                     return False
                 else:
                     print(f"   ✅ Verification passed after correction")
+                    # Record successful resolution
+                    if pattern_id and self.adaptive_prompter:
+                        self.adaptive_prompter.record_resolution(
+                            pattern_id=pattern_id,
+                            success=True,
+                            fix_description="Self-correction successfully resolved verification issues"
+                        )
+
             else:
                 print(f"   ✅ Verification passed ({verification_result.duration:.1f}s)")
                 if verification_result.git_analysis.get('changed_files'):
@@ -505,6 +552,11 @@ class CursorHarness:
         if self.is_first_session and self.spec_file and self.spec_file.exists():
             spec_content = self.spec_file.read_text()
             prompt = f"{prompt}\n\n---\n\n## Project Specification\n\n{spec_content}"
+        
+        # Adaptive prompting: inject learned patterns (v5.0.0+)
+        if self.adaptive_prompter and not self.is_first_session:
+            # Don't inject on initializer - only on coding sessions
+            prompt = self.adaptive_prompter.augment_prompt(prompt)
 
         return prompt
 
