@@ -63,7 +63,11 @@ class CursorHarness:
         mode: str,
         spec_file: Optional[Path] = None,
         timeout_minutes: int = 60,
-        model: str = "sonnet-4.5"
+        model: str = "sonnet-4.5",
+        enable_verification: bool = True,
+        enable_git_analysis: bool = True,
+        enable_tests: bool = True,
+        enable_lint: bool = False
     ):
         self.project_dir = Path(project_dir).resolve()
         self.mode = mode  # greenfield, enhancement, bugfix, backlog
@@ -79,6 +83,18 @@ class CursorHarness:
         self.iteration = 0
         self.failure_counts = {}  # Track failures per work item
         self.max_retries = 3
+        
+        # Verification pipeline (v5.0.0+)
+        self.enable_verification = enable_verification
+        self.verification_pipeline = None
+        if enable_verification:
+            from .verification import VerificationPipeline
+            self.verification_pipeline = VerificationPipeline(
+                project_dir=project_dir,
+                enable_git_analysis=enable_git_analysis,
+                enable_tests=enable_tests,
+                enable_lint=enable_lint
+            )
     
         # Track if this is first session (initializer) or coding session
         feature_list_exists = (self.project_dir / "feature_list.json").exists()
@@ -343,7 +359,7 @@ class CursorHarness:
         return self._execute_session(prompt, "initializer")
     
     def _run_coding_session(self) -> bool:
-        """Run a coding session (Anthropic's pattern + E2E verification)."""
+        """Run a coding session (Anthropic's pattern + verification)."""
 
         # Get current work item for E2E verification
         work_item = self._get_current_work_item()
@@ -354,6 +370,43 @@ class CursorHarness:
 
         if not success:
             return False
+
+        # Git-based verification pipeline (v5.0.0+)
+        if self.verification_pipeline:
+            print(f"\n   🔍 Running verification...")
+            
+            verification_result = self.verification_pipeline.verify()
+            
+            if not verification_result.passed:
+                print(f"   ⚠️  Verification failed ({verification_result.duration:.1f}s)")
+                
+                # Show warnings
+                for warning in verification_result.warnings:
+                    location = f"{warning.file}:{warning.line}" if warning.line else warning.file
+                    print(f"      [{warning.severity.upper()}] {location}: {warning.message}")
+                
+                # Self-correction: Give LLM one chance to fix
+                print(f"\n   🔄 Attempting self-correction...")
+                correction_prompt = self._build_correction_prompt(verification_result)
+                correction_success = self._execute_session(correction_prompt, "correction")
+                
+                if not correction_success:
+                    print(f"   ❌ Self-correction failed")
+                    return False
+                
+                # Re-verify after correction
+                print(f"\n   🔍 Re-verifying...")
+                re_verification = self.verification_pipeline.verify()
+                
+                if not re_verification.passed:
+                    print(f"   ❌ Still failing after correction")
+                    return False
+                else:
+                    print(f"   ✅ Verification passed after correction")
+            else:
+                print(f"   ✅ Verification passed ({verification_result.duration:.1f}s)")
+                if verification_result.git_analysis.get('changed_files'):
+                    print(f"      Modified: {len(verification_result.git_analysis['changed_files'])} file(s)")
 
         # Production enhancement: Verify E2E testing was done
         # Only for user-facing modes (greenfield, enhancement)
@@ -503,6 +556,46 @@ E2E testing will use project's existing test framework (npm run test:e2e, etc.)"
             prompt = prompt.replace("{{BROWSER_MCP_TOOLS}}", fallback)
 
         return prompt
+    
+    def _build_correction_prompt(self, verification_result) -> str:
+        """
+        Build prompt for LLM self-correction based on verification failures.
+        
+        Args:
+            verification_result: VerificationResult with failure details
+        
+        Returns:
+            Prompt for correction session
+        """
+        correction_prompt = f"""# Self-Correction Required
+
+The previous changes failed verification. Please review and fix the issues below.
+
+{verification_result.to_prompt()}
+
+## Instructions
+
+1. **Review the issues** listed above carefully
+2. **Fix each issue** according to the suggestions provided
+3. **Verify your changes** by checking:
+   - Git diff makes sense
+   - Tests pass (if applicable)
+   - No sensitive data exposed
+4. **Commit your fixes** with a clear message
+
+Focus ONLY on fixing the verification issues. Do not make unrelated changes.
+
+## Current State
+
+Read the following to understand what needs fixing:
+- cursor-progress.txt (current task context)
+- feature_list.json (overall progress)
+- Git diff (what changed)
+
+Then make the necessary corrections.
+"""
+        
+        return correction_prompt
     
     
     def _final_validation(self) -> bool:
