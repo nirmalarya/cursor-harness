@@ -4,6 +4,23 @@
 
 ### 🧠 Intelligence Layer
 
+**Git Checkpointing / Rollback (#22)**
+- Auto-commit after successful verification passes
+- Checkpoint commits tagged with session metadata (iteration, verification status)
+- Rollback to any checkpoint (soft or hard reset)
+- Auto-rollback on consecutive failures (threshold: 3 failures)
+- Checkpoint history persisted per session
+- Safety net for autonomous coding sessions
+
+**How It Works:**
+1. After verification passes → create git checkpoint
+2. Track consecutive verification failures
+3. After 3 consecutive failures → auto-rollback to last known-good checkpoint
+4. LLM can retry from stable state instead of compounding errors
+
+**Storage:**
+Checkpoints stored in `.cursor/checkpoints/{session_id}.json`
+
 **Adaptive Prompting from Failure Patterns (#20)**
 - Cross-session learning: harness learns from errors and successful fixes
 - Pattern database stores error signatures, resolutions, and success rates

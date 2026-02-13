@@ -278,25 +278,58 @@ class CheckpointManager:
     
     def _get_changed_files(self) -> List[str]:
         """Get list of files with uncommitted changes."""
+        # Check if we have any commits yet
         try:
-            result = subprocess.run(
-                ['git', 'diff', '--name-only', 'HEAD'],
+            subprocess.run(
+                ['git', 'rev-parse', 'HEAD'],
                 cwd=self.project_dir,
                 capture_output=True,
-                text=True,
-                timeout=10
+                timeout=5,
+                check=True
             )
-            
-            if result.returncode == 0:
-                files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
-                return files
+            has_commits = True
         except:
-            pass
+            has_commits = False
         
-        # Fallback: check for unstaged changes
+        if has_commits:
+            # Normal case: compare against HEAD
+            try:
+                result = subprocess.run(
+                    ['git', 'diff', '--name-only', 'HEAD'],
+                    cwd=self.project_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if result.returncode == 0:
+                    files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+                    if files:
+                        return files
+            except:
+                pass
+            
+            # Fallback: unstaged changes
+            try:
+                result = subprocess.run(
+                    ['git', 'diff', '--name-only'],
+                    cwd=self.project_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if result.returncode == 0:
+                    files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+                    if files:
+                        return files
+            except:
+                pass
+        
+        # Initial commit case: check untracked files
         try:
             result = subprocess.run(
-                ['git', 'diff', '--name-only'],
+                ['git', 'ls-files', '--others', '--exclude-standard'],
                 cwd=self.project_dir,
                 capture_output=True,
                 text=True,

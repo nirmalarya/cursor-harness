@@ -454,6 +454,17 @@ class CursorHarness:
                             success=False,
                             fix_description="Self-correction did not resolve issue"
                         )
+                    
+                    # Track consecutive failures and trigger auto-rollback (v5.0.0+)
+                    self.consecutive_failures += 1
+                    if self.checkpoint_manager:
+                        if self.checkpoint_manager.auto_rollback_on_failure(
+                            consecutive_failures=self.consecutive_failures,
+                            threshold=3
+                        ):
+                            # Rollback triggered
+                            self.consecutive_failures = 0
+                    
                     return False
                 else:
                     print(f"   ✅ Verification passed after correction")
@@ -464,11 +475,34 @@ class CursorHarness:
                             success=True,
                             fix_description="Self-correction successfully resolved verification issues"
                         )
+                    
+                    # Create checkpoint after successful correction (v5.0.0+)
+                    self.consecutive_failures = 0
+                    if self.checkpoint_manager:
+                        checkpoint = self.checkpoint_manager.create_checkpoint(
+                            iteration=self.iteration,
+                            verification_passed=True,
+                            message=f"Iteration {self.iteration} (corrected)"
+                        )
+                        if checkpoint:
+                            print(f"      📸 Checkpoint created: {checkpoint.commit_hash[:8]}")
+
 
             else:
                 print(f"   ✅ Verification passed ({verification_result.duration:.1f}s)")
                 if verification_result.git_analysis.get('changed_files'):
                     print(f"      Modified: {len(verification_result.git_analysis['changed_files'])} file(s)")
+                
+                # Create checkpoint after successful verification (v5.0.0+)
+                self.consecutive_failures = 0
+                if self.checkpoint_manager:
+                    checkpoint = self.checkpoint_manager.create_checkpoint(
+                        iteration=self.iteration,
+                        verification_passed=True,
+                        message=f"Iteration {self.iteration}"
+                    )
+                    if checkpoint:
+                        print(f"      📸 Checkpoint created: {checkpoint.commit_hash[:8]}")
 
         # Production enhancement: Verify E2E testing was done
         # Only for user-facing modes (greenfield, enhancement)
