@@ -79,6 +79,21 @@ class CursorHarness:
         self.iteration = 0
         self.failure_counts = {}  # Track failures per work item
         self.max_retries = 3
+        self.consecutive_failures = 0  # For auto-rollback
+        
+        # Generate session ID
+        import hashlib
+        session_str = f"{project_dir}_{mode}_{self.start_time}"
+        self.session_id = hashlib.md5(session_str.encode()).hexdigest()[:16]
+        
+        # Checkpoint manager (v5.0.0+)
+        self.checkpoint_manager = None
+        if enable_verification:
+            from .checkpoint import CheckpointManager
+            self.checkpoint_manager = CheckpointManager(
+                project_dir=project_dir,
+                session_id=self.session_id
+            )
     
         # Track if this is first session (initializer) or coding session
         feature_list_exists = (self.project_dir / "feature_list.json").exists()
