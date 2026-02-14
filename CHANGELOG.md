@@ -4,6 +4,32 @@
 
 ### 🧠 Intelligence Layer
 
+**Multi-Agent Coordination (#28)**
+- Coordinate multiple harness instances on complex tasks
+- Task distribution with dependency management
+- Agent registration and capability tracking
+- Inter-agent message passing
+- Result aggregation across agents
+- Persistent coordination state
+
+**Features:**
+- `register_agent(id, capabilities)` - register agents
+- `create_task(id, desc, agent, deps)` - create tasks
+- Task lifecycle: pending → running → completed/failed
+- `get_ready_tasks()` - tasks with satisfied dependencies
+- `send_message(from, to, content)` - agent communication
+- `get_task_results()` - aggregate results
+- Auto-assignment with round-robin (extensible to capability matching)
+
+**Use Cases:**
+- Parallel feature development across agents
+- Complex tasks requiring specialization
+- Load distribution
+- Agent collaboration
+
+**Storage:**
+`.cursor/coordination/{coordinator_id}_{tasks|messages}.json`
+
 **Session Analytics Dashboard (#27)**
 - Cross-session analytics aggregation
 - High-level summary metrics
